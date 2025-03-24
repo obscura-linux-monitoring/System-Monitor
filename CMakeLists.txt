@@ -15,7 +15,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 실행 파일 확장자를 .exe로 설정
-set(CMAKE_EXECUTABLE_SUFFIX ".exe")
+set(CMAKE_EXECUTABLE_SUFFIX ".exec")
 
 # 필요한 모든 패키지 찾기 - 먼저 검색하여 효율성 향상
 find_package(PkgConfig REQUIRED)
