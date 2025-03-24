@@ -8,8 +8,11 @@ set(EXECUTABLE_NAME client)
 
 # C++17 표준 설정
 set(CMAKE_CXX_STANDARD 17)
+
+# 빌드 결과물을 bin 폴더에 저장하도록 설정
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 실행 파일 확장자를 .exe로 설정
 set(CMAKE_EXECUTABLE_SUFFIX ".exe")
