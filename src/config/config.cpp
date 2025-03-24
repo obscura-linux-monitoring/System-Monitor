@@ -1,10 +1,12 @@
 #include "config/config.h"
+#include "log/logger.h"
 #include <random>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
 #include <unistd.h>
 #include <openssl/sha.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -24,22 +26,36 @@ string Config::getSystemKey()
 
 void Config::generateSystemKey()
 {
-    const char *homeDir = getenv("HOME");
-    string keyPath = string(homeDir) + "/.system-monitor.key";
+    LOG_INFO("시스템 키 생성 시작");
+    string keyPath = "/opt/system-monitor/system-monitor.key";
+
+    // 디렉토리 존재 여부 확인 및 생성
+    string dirPath = "/opt/system-monitor";
+    if (access(dirPath.c_str(), F_OK) != 0)
+    {
+        if (mkdir(dirPath.c_str(), 0755) != 0)
+        {
+            LOG_ERROR("시스템 키 디렉토리 생성 실패: {}", dirPath);
+            throw runtime_error("Failed to create directory: " + dirPath);
+        }
+    }
 
     // 기존 키 파일이 있는지 확인
     ifstream keyFile(keyPath);
     if (keyFile.good())
     {
+        LOG_INFO("기존 시스템 키 파일 존재");
         string existingKey;
         getline(keyFile, existingKey);
         if (!existingKey.empty())
         {
+            LOG_INFO("기존 시스템 키 파일 읽기 성공");
             systemKey = existingKey;
             return;
         }
     }
 
+    LOG_INFO("새로운 시스템 키 생성 시작");
     // 새로운 키 생성
     random_device rd;
     mt19937 gen(rd());
@@ -61,6 +77,7 @@ void Config::generateSystemKey()
 
     string newKey = ss.str();
 
+    LOG_INFO("새로운 시스템 키 해시 생성 시작");
     // sha512 해시 생성
     unsigned char hash[SHA512_DIGEST_LENGTH];
     SHA512_CTX sha512;
@@ -76,12 +93,20 @@ void Config::generateSystemKey()
     }
     string hashedKey = hashStream.str();
 
+    LOG_INFO("해시된 시스템 키 저장 시작");
     // 해시된 키 파일 저장
     ofstream outFile(keyPath);
     if (outFile.good())
     {
         outFile << hashedKey;
     }
+    else
+    {
+        LOG_ERROR("시스템 키 파일 저장 실패: {}", keyPath);
+        throw runtime_error("Failed to save system key: " + keyPath);
+    }
+
+    LOG_INFO("시스템 키 저장 완료");
 
     systemKey = hashedKey;
 }

@@ -53,7 +53,22 @@ int main(int argc, char **argv)
     ServerInfo serverInfo;
 
     Config config;
-    string systemKey = config.getSystemKey();
+    string systemKey;
+    try
+    {
+        systemKey = config.getSystemKey();
+    }
+    catch (const exception &e)
+    {
+        LOG_ERROR("시스템 키를 가져오는 중 오류 발생: {}", e.what());
+        systemKey = "default_key"; // 기본 키 설정
+    }
+
+    if (systemKey.empty())
+    {
+        LOG_WARN("시스템 키가 비어 있습니다. 기본 키를 사용합니다.");
+        systemKey = "default_key";
+    }
 
     // 명령줄 인수 처리
     for (int i = 1; i < argc; i++)
