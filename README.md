@@ -25,7 +25,7 @@
 ## 설치 방법
 
 ```shell
-# 설치 명령어들이 들어갈 자리
+sudo wget -O /tmp/install.sh https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/dev/install.sh && sudo sh /tmp/install.sh
 ```
 
 ## 사용 방법
