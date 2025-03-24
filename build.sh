@@ -3,6 +3,9 @@
 # CPU 코어 수 확인
 CORES=$(nproc)
 
+# bin 삭제
+rm -f bin/*
+
 # build 디렉토리로 이동
 cd build
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=System Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/system-monitor/bin/client.exec -s 127.0.0.1:8087 -c 2 -t 2
+WorkingDirectory=/opt/system-monitor
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=system-monitor
+
+[Install]
+WantedBy=multi-user.target
