@@ -1,0 +1,183 @@
+{
+    "key": "server unique hashed key",
+    "timestamp": "timestamp",
+    "system": {
+        "hostname": "hostname",
+        "os_name": "os_name",
+        "os_version": "os_version",
+        "kernel_version": "kernel_version",
+        "architecture": "architecture",
+        "uptime": "seconds",
+        "boot_time": "timestamp",
+        "load_average": {
+            "1min": "value",
+            "5min": "value",
+            "15min": "value"
+        }
+    },
+    "cpu": {
+        "model": "cpu_model",
+        "architecture": "cpu_architecture",
+        "usage": "percentage",
+        "temperature": "celsius",
+        "total_cores": "number",
+        "total_logical_cores": "number",
+        "cores": [
+            {
+                "id": "core_id",
+                "usage": "percentage",
+                "speed": "GHz",
+                "temperature": "celsius"
+            }
+        ]
+    },
+    "memory": {
+        "total": "bytes",
+        "used": "bytes",
+        "free": "bytes",
+        "cached": "bytes",
+        "buffers": "bytes",
+        "available": "bytes",
+        "swap_total": "bytes",
+        "swap_used": "bytes",
+        "swap_free": "bytes",
+        "usage_percent": "percentage"
+    },
+    "disk": [
+        {
+            "device": "device",
+            "mount_point": "mount_point",
+            "filesystem_type": "filesystem_type",
+            "total": "bytes",
+            "used": "bytes",
+            "free": "bytes",
+            "usage_percent": "percentage",
+            "inodes_total": "number",
+            "inodes_used": "number",
+            "inodes_free": "number",
+            "io_stats": {
+                "reads": "number",
+                "writes": "number",
+                "read_bytes": "bytes",
+                "write_bytes": "bytes",
+                "read_time": "milliseconds",
+                "write_time": "milliseconds",
+                "io_time": "milliseconds",
+                "io_in_progress": "number"
+            }
+        }
+    ],
+    "network": [
+        {
+            "interface": "interface_name",
+            "ip": "ip_address",
+            "mac": "mac_address",
+            "status": "up/down",
+            "speed": "mbps",
+            "mtu": "bytes",
+            "rx_bytes": "bytes",
+            "tx_bytes": "bytes",
+            "rx_packets": "number",
+            "tx_packets": "number",
+            "rx_errors": "number",
+            "tx_errors": "number",
+            "rx_dropped": "number",
+            "tx_dropped": "number",
+            "rx_bytes_per_sec": "bytes/sec",
+            "tx_bytes_per_sec": "bytes/sec"
+        }
+    ],
+    "processes": [
+        {
+            "pid": "process_id",
+            "ppid": "parent_process_id",
+            "name": "process_name",
+            "status": "process_status",
+            "cpu_usage": "percentage",
+            "memory_rss": "bytes",
+            "memory_vsz": "bytes",
+            "threads": "number",
+            "user": "user",
+            "command": "command",
+            "start_time": "timestamp",
+            "cpu_time": "seconds",
+            "io_read_bytes": "bytes",
+            "io_write_bytes": "bytes",
+            "open_files": "number",
+            "nice": "nice_value"
+        }
+    ],
+    "docker": [
+        {
+            "container_id": "container_id",
+            "container_name": "container_name",
+            "container_image": "container_image",
+            "container_status": "container_status",
+            "container_created": "timestamp",
+            "container_health": {
+                "status": "status",
+                "failing_streak": "number",
+                "last_check_output": "output"
+            },
+            "container_ports": [
+                {
+                    "container_port": "container_port",
+                    "host_port": "host_port",
+                    "protocol": "protocol"
+                }
+            ],
+            "container_network": [
+                {
+                    "network_name": "network_name",
+                    "network_ip": "network_ip",
+                    "network_mac": "network_mac",
+                    "network_rx_bytes": "bytes",
+                    "network_tx_bytes": "bytes"
+                }
+            ],
+            "container_volumes": [
+                {
+                    "source": "host_path",
+                    "destination": "container_path",
+                    "mode": "ro/rw",
+                    "type": "bind/volume"
+                }
+            ],
+            "container_env": [
+                {
+                    "key": "key",
+                    "value": "value"
+                }
+            ],
+            "cpu_usage": "percentage",
+            "memory_usage": "bytes",
+            "memory_limit": "bytes",
+            "memory_percent": "percentage",
+            "command": "command",
+            "network_rx_bytes": "bytes",
+            "network_tx_bytes": "bytes",
+            "block_read": "bytes",
+            "block_write": "bytes",
+            "pids": "number",
+            "restarts": "number",
+            "labels": [
+                {
+                    "label_key": "label_value"
+                }
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "service_name",
+            "status": "running/stopped/failed",
+            "enabled": "boolean",
+            "type": "service_type",
+            "load_state": "load_state",
+            "active_state": "active_state",
+            "sub_state": "sub_state",
+            "memory_usage": "bytes",
+            "cpu_usage": "percentage"
+        }
+    ]
+}

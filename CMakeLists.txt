@@ -1,0 +1,99 @@
+cmake_minimum_required(VERSION 3.10)
+project(system_monitor VERSION 1.0)
+
+# C++17 표준 설정
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# filesystem 라이브러리 연결
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    link_libraries(stdc++fs)
+endif()
+
+# websocketpp 라이브러리 경로 설정
+set(WEBSOCKETPP_INCLUDE_DIR "/usr/include")
+include_directories(${WEBSOCKETPP_INCLUDE_DIR})
+
+# 컴파일러 경고 플래그 설정
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        -Wall              # 기본적인 모든 경고
+        -Wextra           # 추가 경고
+        -Wpedantic        # 표준 준수 검사
+        -Wshadow          # 변수 섀도잉 감지
+        -Wformat=2        # 문자열 포맷 검사 강화
+        -Wunused          # 사용되지 않는 변수/함수 감지
+        -Wcast-align      # 메모리 정렬 관련 경고
+        -Wconversion      # 암시적 변환 경고
+        -Wsign-conversion # 부호 변환 경고
+        -Wnull-dereference # null 포인터 참조 검사
+    )
+endif()
+
+# 헤더 파일 경로
+include_directories(
+    ${PROJECT_SOURCE_DIR}/include
+    ${JSONCPP_INCLUDE_DIRS}
+    ${CURL_INCLUDE_DIRS}
+    ${SYSTEMD_INCLUDE_DIRS}
+)
+
+# 소스 파일들을 각 디렉토리별로 추가
+file(GLOB_RECURSE SOURCES 
+    "${PROJECT_SOURCE_DIR}/src/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/collectors/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/ui/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/models/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/utils/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/network/client/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/network/common/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/log/*.cpp"
+)
+
+# 실행 파일 생성
+add_executable(system_monitor ${SOURCES})
+
+# 필요한 모든 패키지 찾기
+find_package(PkgConfig REQUIRED)
+find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
+# libstatgrab 라이브러리
+pkg_check_modules(STATGRAB REQUIRED libstatgrab)
+
+# sensors 라이브러리
+find_library(SENSORS_LIBRARY NAMES sensors)
+if(NOT SENSORS_LIBRARY)
+    message(FATAL_ERROR "sensors library not found")
+endif()
+
+# ncurses 라이브러리
+pkg_check_modules(NCURSESW REQUIRED ncursesw)
+
+# procps 라이브러리
+pkg_check_modules(PROCPS REQUIRED libprocps)
+
+# jsoncpp 라이브러리
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+
+# libsystemd 개발 패키지
+pkg_check_modules(SYSTEMD REQUIRED libsystemd)
+
+# 모든 라이브러리를 한 번에 링크
+target_link_libraries(system_monitor PRIVATE
+    ${STATGRAB_LIBRARIES}
+    Threads::Threads
+    ${SENSORS_LIBRARY}
+    ${NCURSESW_LIBRARIES}
+    CURL::libcurl
+    ${PROCPS_LIBRARIES}
+    ${JSONCPP_LIBRARIES}
+    OpenSSL::Crypto
+    spdlog::spdlog
+    nlohmann_json::nlohmann_json
+    ${SYSTEMD_LIBRARIES}
+)
