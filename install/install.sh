@@ -22,7 +22,7 @@ DOWNLOAD_UNINSTALL_SCRIPT_URL="https://github.com/obscura-linux-monitoring/Syste
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
-    VERSION=$VERSION_ID
+    VERSION_ID=$(echo $VERSION_ID | tr -d '"')  # 따옴표 제거
 else
     echo "지원되지 않는 리눅스 배포판입니다."
     exit 1
@@ -35,9 +35,47 @@ install_dependencies() {
     case $OS in
         ubuntu|debian)
             apt-get update || return 1
-            apt-get install -y curl libcurl4-openssl-dev libssl-dev libspdlog-dev \
-                              nlohmann-json3-dev libstatgrab-dev libsensors-dev \
-                              libncursesw5-dev libprocps-dev libjsoncpp-dev libsystemd-dev || return 1
+            
+            # Ubuntu 버전별 패키지 이름 설정
+            case $VERSION_ID in
+                "22.04")  # Ubuntu Jammy
+                    apt-get install -y \
+                        libsensors5 \
+                        libncursesw6 \
+                        libcurl4 \
+                        libprocps8 \
+                        libssl3 \
+                        libspdlog1 \
+                        libsystemd0 \
+                        libstdc++6 || return 1
+                    ;;
+                "24.04")  # Ubuntu Noble
+                    apt-get install -y \
+                        libsensors5 \
+                        libncursesw6 \
+                        libcurl4 \
+                        libproc2-0 \
+                        libssl3t64 \
+                        libspdlog1.12 \
+                        libsystemd0 \
+                        libstdc++6 || return 1
+                    ;;
+                "20.04")  # Ubuntu Focal
+                    apt-get install -y \
+                        libsensors5 \
+                        libncursesw6 \
+                        libcurl4 \
+                        libprocps8 \
+                        libssl1.1 \
+                        libspdlog1 \
+                        libsystemd0 \
+                        libstdc++6 || return 1
+                    ;;
+                *)
+                    echo "지원되지 않는 Ubuntu 버전: $VERSION_ID"
+                    return 1
+                    ;;
+            esac
             ;;
         centos|rhel|rocky)
             if [ "$OS" = "centos" ] && [ "$VERSION_ID" -lt 8 ]; then
