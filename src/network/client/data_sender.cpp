@@ -182,8 +182,6 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
                         to_string(data.length()) + "바이트" +
                         (ec ? ", 오류 발생: " + ec.message() : ", 성공");
 
-    cout << logMessage << endl;
-
     if (ec)
     {
         LOG_ERROR(logMessage);
@@ -199,45 +197,16 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
 
 void DataSender::handleMessage(WebsocketHandle hdl, WebsocketClient::message_ptr msg)
 {
+    (void)hdl;
     // 서버로부터의 메시지 처리
     string data = msg->get_payload();
 
     try
     {
-        // 수신된 데이터 로깅 (디버깅 용도)
-        time_t now = time(nullptr);
-        char timestamp[30];
-        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
-
-        cout << "[" << timestamp << "] 메시지 수신: " << (data.length() > 100 ? data.substr(0, 100) + "..." : data) << endl;
-
-        // JSON 파싱 및 명령 처리 (예시)
-        // 서버에서 명령을 전송하는 경우 처리할 수 있음
-        // 예: {"command": "set_interval", "value": 30}
-
-        // 실제 구현은 서버와의 프로토콜에 따라 달라질 수 있음
-        if (data.find("command") != string::npos)
-        {
-            // 명령 처리 로직
-            if (data.find("set_interval") != string::npos)
-            {
-                // 수집 간격 변경 명령 처리
-                // 구현 필요
-            }
-            else if (data.find("pause") != string::npos)
-            {
-                // 일시 중지 명령 처리
-                // 구현 필요
-            }
-            else if (data.find("resume") != string::npos)
-            {
-                // 재개 명령 처리
-                // 구현 필요
-            }
-        }
+        LOG_INFO("메시지 수신: {}", data);
     }
     catch (const exception &e)
     {
-        cerr << "메시지 처리 중 오류 발생: " << e.what() << endl;
+        LOG_ERROR("메시지 처리 중 오류 발생: {}", e.what());
     }
 }
