@@ -9,8 +9,11 @@
 #include "i_dashboard.h"
 #include "models/system_metrics.h"
 #include <memory>
+#include <atomic>
 
-extern volatile bool running; // 전역 변수 선언 유지
+using namespace std;
+
+extern atomic<bool> running; // extern으로 선언 (참조 기호 & 제거)
 
 class DashboardNcurses : public IDashboard
 {
@@ -46,5 +49,5 @@ private:
     void updateProcesses();
     void updateDocker();
 
-    std::string getDivider(const std::string &title = "");
+    string getDivider(const string &title = "");
 };
