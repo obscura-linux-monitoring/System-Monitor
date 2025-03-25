@@ -184,7 +184,7 @@ string NetworkCollector::getInterfaceStatus(const string &if_name)
     return status;
 }
 
-int NetworkCollector::getInterfaceSpeed(const string &if_name)
+uint64_t NetworkCollector::getInterfaceSpeed(const string &if_name)
 {
     string speed_path = "/sys/class/net/" + if_name + "/speed";
     ifstream speed_file(speed_path);
@@ -194,9 +194,14 @@ int NetworkCollector::getInterfaceSpeed(const string &if_name)
         return 0;
     }
 
-    int speed = 0;
-    speed_file >> speed;
-    return speed;
+    // 먼저 int로 읽어서 유효성 검사
+    int temp_speed = 0;
+    if (!(speed_file >> temp_speed) || temp_speed < 0)
+    {
+        return 0;
+    }
+
+    return static_cast<uint64_t>(temp_speed);
 }
 
 int NetworkCollector::getInterfaceMTU(int sock, const string &if_name)

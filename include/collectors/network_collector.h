@@ -18,7 +18,7 @@ private:
     string getIPAddress(int sock, const string &if_name);
     string getMACAddress(const string &if_name);
     string getInterfaceStatus(const string &if_name);
-    int getInterfaceSpeed(const string &if_name);
+    uint64_t getInterfaceSpeed(const string &if_name);
     int getInterfaceMTU(int sock, const string &if_name);
 
 public:
