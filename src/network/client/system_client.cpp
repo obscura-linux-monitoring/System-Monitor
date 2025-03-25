@@ -4,12 +4,15 @@
 #include "common/thread_safe_queue.h"
 #include "models/system_metrics.h"
 #include "utils/system_metrics_utils.h"
+#include "log/logger.h"
 
 #include <iostream>
 #include <thread>
 #include <chrono>
 
 using namespace std;
+
+bool isDisconnected_ = false;
 
 SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey,
                            int collectionInterval, int sendingInterval)
@@ -22,7 +25,7 @@ SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey
     char startTimestamp[30];
     strftime(startTimestamp, sizeof(startTimestamp), "%Y-%m-%d %H:%M:%S", localtime(&start_time_t));
 
-    cout << "[시스템] 초기화 시작: " << startTimestamp << endl;
+    LOG_INFO("시스템 클라이언트 초기화 시작: {}", startTimestamp);
 
     // 수집 관리자 초기화
     collectorManager_ = make_unique<CollectorManager>(systemKey_);
@@ -37,8 +40,7 @@ SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey
     strftime(endTimestamp, sizeof(endTimestamp), "%Y-%m-%d %H:%M:%S", localtime(&end_time_t));
 
     auto initDuration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime);
-    cout << "[시스템] 초기화 완료: " << endTimestamp
-         << ", 소요 시간: " << initDuration.count() << "ms" << endl;
+    LOG_INFO("시스템 클라이언트 초기화 완료: {}, 소요 시간: {}ms", endTimestamp, initDuration.count());
 }
 
 SystemClient::~SystemClient()
@@ -54,7 +56,7 @@ void SystemClient::connect()
     char startTimestamp[30];
     strftime(startTimestamp, sizeof(startTimestamp), "%Y-%m-%d %H:%M:%S", localtime(&start_time_t));
 
-    cout << "[시스템] 연결 시작: " << startTimestamp << endl;
+    LOG_INFO("시스템 클라이언트 연결 시작: {}", startTimestamp);
 
     // 수집 시작
     collectorManager_->start(collectionInterval_);
@@ -74,24 +76,35 @@ void SystemClient::connect()
     strftime(endTimestamp, sizeof(endTimestamp), "%Y-%m-%d %H:%M:%S", localtime(&end_time_t));
 
     auto connectDuration = chrono::duration_cast<chrono::milliseconds>(connectEndTime - connectStartTime);
-    cout << "[시스템] 연결 " << (connected ? "성공" : "실패") << ": " << endTimestamp
-         << ", 소요 시간: " << connectDuration.count() << "ms" << endl;
+    LOG_INFO("시스템 클라이언트 연결 {} : {}, 소요 시간: {}ms", (connected ? "성공" : "실패"), endTimestamp, connectDuration.count());
 }
 
 void SystemClient::disconnect()
 {
-    // 수집 중지
+    if (isDisconnected_)
+        return;
+
+    isDisconnected_ = true;
+
+    // 먼저 데이터 송신을 중지
+    if (dataSender_)
+    {
+        dataSender_->stopSending();
+    }
+
+    // 그 다음 수집을 중지
     if (collectorManager_)
     {
         collectorManager_->stop();
     }
 
-    // 송신 중지 및 연결 해제
+    // 마지막으로 연결 해제
     if (dataSender_)
     {
-        dataSender_->stopSending();
         dataSender_->disconnect();
     }
+
+    LOG_INFO("시스템 클라이언트가 정상적으로 종료되었습니다.");
 }
 
 bool SystemClient::isConnected() const

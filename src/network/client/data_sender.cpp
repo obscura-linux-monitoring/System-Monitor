@@ -77,18 +77,27 @@ void DataSender::disconnect()
     {
         try
         {
-            client_.stop(); // asio 서비스 중지
+            // 먼저 연결을 정상적으로 종료
+            websocketpp::lib::error_code ec;
+            client_.close(connectionHandle_, websocketpp::close::status::normal, "정상 종료", ec);
+
+            // 잠시 대기하여 종료 메시지가 전송될 시간을 줌
+            this_thread::sleep_for(chrono::milliseconds(100));
+
+            // asio 서비스 중지
+            client_.stop();
 
             if (clientThread_.joinable())
             {
-                clientThread_.join(); // 스레드 정리
+                clientThread_.join();
             }
 
             isConnected_ = false;
+            LOG_INFO("WebSocket 연결이 정상적으로 종료되었습니다.");
         }
-        catch (...)
+        catch (const exception &e)
         {
-            // 예외 처리
+            LOG_ERROR("WebSocket 연결 종료 중 오류 발생: {}", e.what());
         }
     }
 }
@@ -167,11 +176,22 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
     time_t endTime = time(nullptr);
     strftime(endTimestamp, sizeof(endTimestamp), "%Y-%m-%d %H:%M:%S", localtime(&endTime));
 
-    string logMessage = "[전송] 시작: " + string(startTimestamp) + ", 종료: " + string(endTimestamp) + ", 소요 시간: " + to_string(sendDuration.count()) + "ms, 데이터 크기: " + to_string(data.length()) + "바이트" + (ec ? ", 오류 발생" : ", 성공");
+    string logMessage = "[전송] 시작: " + string(startTimestamp) +
+                        ", 종료: " + string(endTimestamp) +
+                        ", 소요 시간: " + to_string(sendDuration.count()) + "ms, 데이터 크기: " +
+                        to_string(data.length()) + "바이트" +
+                        (ec ? ", 오류 발생: " + ec.message() : ", 성공");
 
     cout << logMessage << endl;
 
-    LOG_INFO(logMessage);
+    if (ec)
+    {
+        LOG_ERROR(logMessage);
+    }
+    else
+    {
+        LOG_INFO(logMessage);
+    }
     LOG_INFO("데이터 : \n" + data);
 
     return !ec;

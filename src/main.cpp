@@ -13,10 +13,11 @@
 #include "network/client/system_client.h"
 #include "config/config.h"
 #include "log/logger.h"
+#include <atomic>
 
 using namespace std;
 
-volatile bool running = true;
+atomic<bool> running{true}; // volatile 대신 atomic 사용
 bool useServer = false;
 
 unique_ptr<IDashboard>
@@ -25,8 +26,8 @@ unique_ptr<SystemClient> systemClient;
 
 void signal_handler(int signum)
 {
-    (void)signum; // 미사용 매개변수 경고 제거
-    running = false;
+    running.store(false);
+    LOG_INFO("종료 신호 수신 (시그널: {})", signum);
 }
 
 int main(int argc, char **argv)
@@ -159,27 +160,30 @@ int main(int argc, char **argv)
     {
         try
         {
-            // SystemClient를 전역 변수로 선언
             systemClient = make_unique<SystemClient>(serverInfo, systemKey, collectionInterval, sendingInterval);
-
-            // 연결 및 데이터 송수신 시작
             systemClient->connect();
 
-            // 프로그램이 종료되거나 인터럽트될 때까지 대기
-            while (running)
+            while (running.load())
             {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                this_thread::sleep_for(chrono::milliseconds(100));
             }
 
-            // 프로그램 종료 시 연결 종료
+            LOG_INFO("종료 프로세스 시작");
             if (systemClient)
             {
-                systemClient->disconnect();
+                // 타임아웃을 설정하여 안전하게 종료
+                auto future = async(launch::async, [&]()
+                                    { systemClient->disconnect(); });
+
+                if (future.wait_for(chrono::seconds(5)) == future_status::timeout)
+                {
+                    LOG_ERROR("클라이언트 종료 시간 초과");
+                }
             }
         }
         catch (const exception &e)
         {
-            // 예외 처리
+            LOG_ERROR("서버 모드 실행 중 오류 발생: {}", e.what());
         }
     }
     else
@@ -191,7 +195,7 @@ int main(int argc, char **argv)
 
             dashboard->init();
 
-            while (running)
+            while (running.load())
             {
                 dashboard->handleInput();
 
