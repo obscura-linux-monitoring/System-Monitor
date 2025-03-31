@@ -151,36 +151,54 @@ download_uninstall_script() {
     return 0
 }
 
+# 정리 함수 추가
+cleanup() {
+    echo "설치 파일 정리 중..."
+    
+    # 서비스 파일 제거
+    rm -f /etc/systemd/system/$SERVICE_NAME.service 2>/dev/null
+    
+    # 설치 디렉터리 제거
+    rm -rf $INSTALL_DIR 2>/dev/null
+    
+    echo "정리 완료"
+}
+
 # 메인 설치 과정
 echo "시스템 모니터 설치 시작..."
 
 create_directories
 if [ $? -ne 0 ]; then
     echo "디렉터리 생성 실패. 설치를 중단합니다."
+    cleanup
     exit 1
 fi
 
 install_dependencies
 if [ $? -ne 0 ]; then
     echo "의존성 패키지 설치 실패. 설치를 중단합니다."
+    cleanup
     exit 1
 fi
 
 download_executable
 if [ $? -ne 0 ]; then
     echo "실행 파일 다운로드 실패. 설치를 중단합니다."
+    cleanup
     exit 1
 fi
 
 download_uninstall_script
 if [ $? -ne 0 ]; then
     echo "언인스톨 스크립트 다운로드 실패. 설치를 중단합니다."
+    cleanup
     exit 1
 fi
 
 download_service_file
 if [ $? -ne 0 ]; then
     echo "서비스 파일 다운로드 실패. 설치를 중단합니다."
+    cleanup
     exit 1
 fi
 

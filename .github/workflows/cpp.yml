@@ -66,6 +66,6 @@ jobs:
           bin/client.exec
           install/install.sh
           install/uninstall.sh
-          install/service.sh
+          install/system-monitor.service
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
