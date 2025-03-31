@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# last modified: 2025-03-24 16:25
-
 # 루트 권한 확인
 if [ "$EUID" -ne 0 ]; then
   echo "루트 권한으로 실행해주세요 (sudo ./install.sh)"
