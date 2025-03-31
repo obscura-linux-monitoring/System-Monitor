@@ -71,12 +71,17 @@ int main(int argc, char **argv)
         systemKey = "default_key";
     }
 
+    string user_id;
     // 명령줄 인수 처리
     for (int i = 1; i < argc; i++)
     {
         string arg = argv[i];
-        if (arg == "-n" || arg == "--ncurses")
+        if (arg == "-k")
         {
+            if (i + 1 < argc)
+            {
+                user_id = argv[++i];
+            }
         }
         else if (arg == "-h" || arg == "--help")
         {
@@ -160,7 +165,7 @@ int main(int argc, char **argv)
     {
         try
         {
-            systemClient = make_unique<SystemClient>(serverInfo, systemKey, collectionInterval, sendingInterval);
+            systemClient = make_unique<SystemClient>(serverInfo, systemKey, collectionInterval, sendingInterval, user_id);
             systemClient->connect();
 
             while (running.load())

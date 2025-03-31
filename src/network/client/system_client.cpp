@@ -15,9 +15,9 @@ using namespace std;
 bool isDisconnected_ = false;
 
 SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey,
-                           int collectionInterval, int sendingInterval)
+                           int collectionInterval, int sendingInterval, const string &user_id)
     : serverInfo_(serverInfo), systemKey_(systemKey),
-      collectionInterval_(collectionInterval), sendingInterval_(sendingInterval)
+      collectionInterval_(collectionInterval), sendingInterval_(sendingInterval), user_id_(user_id)
 {
     // 시작 시간 기록
     auto startTime = chrono::system_clock::now();
@@ -31,7 +31,7 @@ SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey
     collectorManager_ = make_unique<CollectorManager>(systemKey_);
 
     // 데이터 송신기 초기화
-    dataSender_ = make_unique<DataSender>(serverInfo_, collectorManager_->getDataQueue());
+    dataSender_ = make_unique<DataSender>(serverInfo_, collectorManager_->getDataQueue(), user_id_);
 
     // 종료 시간 기록 및 소요 시간 출력
     auto endTime = chrono::system_clock::now();

@@ -245,6 +245,7 @@ void to_json(json &j, const ServiceInfo &service)
 void to_json(json &j, const SystemMetrics &metrics)
 {
     j = {
+        {"user_id", metrics.user_id},
         {"key", metrics.key},
         {"timestamp", metrics.timestamp},
         {"system", metrics.system},

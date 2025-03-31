@@ -17,7 +17,7 @@ using namespace std;
 class DataSender
 {
 public:
-    DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue);
+    DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue, const string &user_id);
     ~DataSender();
 
     // 서버 연결
@@ -41,6 +41,7 @@ private:
 
     ServerInfo serverInfo_;
     ThreadSafeQueue<SystemMetrics> &dataQueue_;
+    string user_id_;
 
     WebsocketClient client_;
     WebsocketHandle connectionHandle_;

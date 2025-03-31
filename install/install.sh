@@ -11,9 +11,18 @@ INSTALL_DIR="/opt/system-monitor"
 BIN_DIR="$INSTALL_DIR/bin"
 SERVICE_NAME="system-monitor"
 UNINSTALL_SCRIPT="uninstall.sh"
+SERVER_URL="1.209.148.143:8087"
 
 # 버전 매개변수 확인
 VERSION=${1:-"dev"}  # 매개변수가 없으면 기본값 "dev" 사용
+
+# KEY 매개변수 확인
+if [ -z "$2" ]; then
+  echo "USER_ID 매개변수가 필요합니다 (sudo ./install.sh VERSION USER_ID)"
+  exit 1
+fi
+USER_ID=${2}
+
 BASE_URL="https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/$VERSION"
 DOWNLOAD_EXCUABLE_URL="$BASE_URL/client.exec"
 DOWNLOAD_SERVICE_URL="$BASE_URL/system-monitor.service"
@@ -139,6 +148,11 @@ download_files() {
         echo "서비스 파일 다운로드 실패"
         return 1
     fi
+    
+    # 서비스 파일 내용 수정
+    echo "서비스 파일 설정 업데이트 중..."
+    sed -i "s|\[SERVER_URL\]|$SERVER_URL|g" /etc/systemd/system/$SERVICE_NAME.service
+    sed -i "s|\[USER_ID\]|$USER_ID|g" /etc/systemd/system/$SERVICE_NAME.service
     
     echo "언인스톨 스크립트 다운로드 중..."
     if ! wget -O $INSTALL_DIR/$UNINSTALL_SCRIPT $DOWNLOAD_UNINSTALL_SCRIPT_URL; then

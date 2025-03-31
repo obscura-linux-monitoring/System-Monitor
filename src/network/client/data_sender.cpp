@@ -4,8 +4,8 @@
 
 using namespace std;
 
-DataSender::DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue)
-    : serverInfo_(serverInfo), dataQueue_(dataQueue), isConnected_(false), running_(false)
+DataSender::DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue, const string &user_id)
+    : serverInfo_(serverInfo), dataQueue_(dataQueue), user_id_(user_id), isConnected_(false), running_(false)
 {
     // WebSocket 클라이언트 초기화
     client_.init_asio();
@@ -134,6 +134,7 @@ void DataSender::sendLoop(int intervalSeconds)
         SystemMetrics metrics;
         if (dataQueue_.pop(metrics))
         {
+            metrics.user_id = user_id_;
             sendMetrics(metrics);
         }
 

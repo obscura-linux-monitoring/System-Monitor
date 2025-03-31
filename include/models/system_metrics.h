@@ -16,6 +16,7 @@ using namespace std;
 
 struct SystemMetrics
 {
+    string user_id;
     string key;
     string timestamp;
     SystemInfo system;

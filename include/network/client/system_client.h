@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+using namespace std;
+
 // 전방 선언
 class CollectorManager;
 class DataSender;
@@ -13,8 +15,8 @@ class DataSender;
 class SystemClient
 {
 public:
-    SystemClient(const ServerInfo &serverInfo, const std::string &systemKey,
-                 int collectionInterval = 5, int sendingInterval = 5);
+    SystemClient(const ServerInfo &serverInfo, const string &systemKey,
+                 int collectionInterval = 5, int sendingInterval = 5, const string &user_id = "");
     ~SystemClient();
 
     // 서버에 연결하고 데이터 수집/전송 시작
@@ -28,13 +30,13 @@ public:
 
 private:
     ServerInfo serverInfo_;
-    std::string systemKey_;
-
+    string systemKey_;
+    string user_id_;
     // 수집 관리자
-    std::unique_ptr<CollectorManager> collectorManager_;
+    unique_ptr<CollectorManager> collectorManager_;
 
     // 데이터 송신기
-    std::unique_ptr<DataSender> dataSender_;
+    unique_ptr<DataSender> dataSender_;
 
     // 수집 간격 (초)
     int collectionInterval_;

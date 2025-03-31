@@ -6,7 +6,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/system-monitor/bin/client.exec -s 1.209.148.143:8087 -c 2 -t 2
+ExecStart=/opt/system-monitor/bin/client.exec -s [SERVER_URL] -c 2 -t 2 -k [USER_ID]
 WorkingDirectory=/opt/system-monitor
 Restart=on-failure
 RestartSec=5
