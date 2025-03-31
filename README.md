@@ -33,8 +33,8 @@
 
 ## 설치 방법
 
-```shell
-sudo wget -O /tmp/install.sh https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/dev/install.sh && sudo sh /tmp/install.sh
+```bash
+sudo wget -O /tmp/install.sh https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/[version]/install.sh  && chmod +x install.sh && sudo sh /tmp/install.sh [version] [user_id]
 ```
 
 ## 사용 방법
