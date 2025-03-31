@@ -64,5 +64,8 @@ jobs:
         prerelease: false
         files: |
           bin/client.exec
+          install/install.sh
+          install/uninstall.sh
+          install/service.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

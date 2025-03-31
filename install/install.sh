@@ -13,16 +13,25 @@ INSTALL_DIR="/opt/system-monitor"
 BIN_DIR="$INSTALL_DIR/bin"
 SERVICE_NAME="system-monitor"
 UNINSTALL_SCRIPT="uninstall.sh"
-DOWNLOAD_EXCUABLE_URL="https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/dev/client.exec"
-DOWNLOAD_SERVICE_URL="https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/dev/system-monitor.service"
-DOWNLOAD_UNINSTALL_SCRIPT_URL="https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/dev/uninstall.sh"
 
+# 버전 매개변수 확인
+VERSION=${1:-"dev"}  # 매개변수가 없으면 기본값 "dev" 사용
+BASE_URL="https://github.com/obscura-linux-monitoring/System-Monitor/releases/download/$VERSION"
+DOWNLOAD_EXCUABLE_URL="$BASE_URL/client.exec"
+DOWNLOAD_SERVICE_URL="$BASE_URL/system-monitor.service"
+DOWNLOAD_UNINSTALL_SCRIPT_URL="$BASE_URL/uninstall.sh"
 
 # 배포판 확인
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
     VERSION_ID=$(echo $VERSION_ID | tr -d '"')  # 따옴표 제거
+    
+    # Ubuntu 20.04 버전 체크
+    if [ "$OS" != "ubuntu" ] || [ "$VERSION_ID" != "20.04" ]; then
+        echo "이 프로그램은 Ubuntu 20.04에서만 실행 가능합니다."
+        exit 1
+    fi
 else
     echo "지원되지 않는 리눅스 배포판입니다."
     exit 1
