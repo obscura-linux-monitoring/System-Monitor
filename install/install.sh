@@ -123,29 +123,31 @@ create_directories() {
     return 0
 }
 
-# 실행 파일 다운로드
-download_executable() {
+# 기존 download_executable, download_service_file, download_uninstall_script 함수 대신 
+# 아래 단일 함수로 대체
+
+download_files() {
     echo "실행 파일 다운로드 중..."
-    wget -O $BIN_DIR/client.exec $DOWNLOAD_EXCUABLE_URL || return 1
-    chmod +x $BIN_DIR/client.exec || return 1
-    echo "실행 파일 다운로드 완료"
-    return 0
-}
+    if ! wget -O $BIN_DIR/client.exec $DOWNLOAD_EXCUABLE_URL; then
+        echo "실행 파일 다운로드 실패"
+        return 1
+    fi
+    chmod +x $BIN_DIR/client.exec
 
-# 서비스 파일 다운로드
-download_service_file() {
     echo "서비스 파일 다운로드 중..."
-    wget -O /etc/systemd/system/$SERVICE_NAME.service $DOWNLOAD_SERVICE_URL || return 1
-    echo "서비스 파일 다운로드 완료"
-    return 0
-}
-
-# 언인스톨 스크립트 다운로드
-download_uninstall_script() {
+    if ! wget -O /etc/systemd/system/$SERVICE_NAME.service $DOWNLOAD_SERVICE_URL; then
+        echo "서비스 파일 다운로드 실패"
+        return 1
+    fi
+    
     echo "언인스톨 스크립트 다운로드 중..."
-    wget -O $INSTALL_DIR/$UNINSTALL_SCRIPT $DOWNLOAD_UNINSTALL_SCRIPT_URL || return 1
-    chmod +x $INSTALL_DIR/$UNINSTALL_SCRIPT || return 1
-    echo "언인스톨 스크립트 다운로드 완료"
+    if ! wget -O $INSTALL_DIR/$UNINSTALL_SCRIPT $DOWNLOAD_UNINSTALL_SCRIPT_URL; then
+        echo "언인스톨 스크립트 다운로드 실패"
+        return 1
+    fi
+    chmod +x $INSTALL_DIR/$UNINSTALL_SCRIPT
+    
+    echo "파일 다운로드 완료"
     return 0
 }
 
@@ -179,23 +181,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-download_executable
+download_files
 if [ $? -ne 0 ]; then
-    echo "실행 파일 다운로드 실패. 설치를 중단합니다."
-    cleanup
-    exit 1
-fi
-
-download_uninstall_script
-if [ $? -ne 0 ]; then
-    echo "언인스톨 스크립트 다운로드 실패. 설치를 중단합니다."
-    cleanup
-    exit 1
-fi
-
-download_service_file
-if [ $? -ne 0 ]; then
-    echo "서비스 파일 다운로드 실패. 설치를 중단합니다."
+    echo "파일 다운로드 실패. 설치를 중단합니다."
     cleanup
     exit 1
 fi
