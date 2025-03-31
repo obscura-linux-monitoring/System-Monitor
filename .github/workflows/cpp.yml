@@ -1,0 +1,67 @@
+name: C++ CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y epel-release
+        sudo apt-get install -y \
+          curl \
+          libcurl4-openssl-dev \
+          libssl-dev \
+          libstatgrab-dev \
+          libsensors4-dev \
+          libncurses-dev \
+          libprocps-dev \
+          libjsoncpp-dev \
+          libsystemd-dev \
+          libspdlog-dev \
+          nlohmann-json3-dev \
+          cmake \
+          g++
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake ..
+
+    - name: Build
+      run: |
+        cd build
+        make clean
+        make -j$(nproc)
+      
+    - name: Generate release version
+      id: release_version
+      run: |
+        echo "VERSION=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+      
+    - name: Create Release
+      if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: release-${{ steps.release_version.outputs.VERSION }}
+        name: Release ${{ steps.release_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+        files: |
+          bin/client.exec
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
