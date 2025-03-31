@@ -31,7 +31,9 @@ jobs:
           libjsoncpp-dev \
           libsystemd-dev \
           libspdlog-dev \
-          nlohmann-json3-dev
+          nlohmann-json3-dev \
+          libwebsocketpp-dev \
+          libboost-all-dev
 
     - name: Create build directory
       run: mkdir -p build
