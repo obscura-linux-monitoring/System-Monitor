@@ -63,6 +63,9 @@ void Logger::init()
         // 로그 레벨 설정
         s_logger->set_level(spdlog::level::debug);
         s_logger->flush_on(spdlog::level::debug);
+        
+        // 대안 1: Visual Studio 스타일
+        s_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] %@: [%!] %v");
 
         LOG_INFO("로거가 초기화되었습니다");
     }

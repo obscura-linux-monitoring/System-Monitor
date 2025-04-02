@@ -44,34 +44,34 @@ private:
  * @brief TRACE 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_TRACE(...) Logger::getLogger()->trace(__VA_ARGS__)
+#define LOG_TRACE(...) SPDLOG_LOGGER_TRACE(Logger::getLogger(), __VA_ARGS__)
 
 /**
  * @brief DEBUG 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_DEBUG(...) Logger::getLogger()->debug(__VA_ARGS__)
+#define LOG_DEBUG(...) SPDLOG_LOGGER_DEBUG(Logger::getLogger(), __VA_ARGS__)
 
 /**
  * @brief INFO 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_INFO(...) Logger::getLogger()->info(__VA_ARGS__)
+#define LOG_INFO(...) SPDLOG_LOGGER_INFO(Logger::getLogger(), __VA_ARGS__)
 
 /**
  * @brief WARN 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_WARN(...) Logger::getLogger()->warn(__VA_ARGS__)
+#define LOG_WARN(...) SPDLOG_LOGGER_WARN(Logger::getLogger(), __VA_ARGS__)
 
 /**
  * @brief ERROR 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_ERROR(...) Logger::getLogger()->error(__VA_ARGS__)
+#define LOG_ERROR(...) SPDLOG_LOGGER_ERROR(Logger::getLogger(), __VA_ARGS__)
 
 /**
  * @brief CRITICAL 수준의 로그 메시지를 기록하는 매크로
  * @param ... 로그 메시지와 포맷 인자
  */
-#define LOG_CRITICAL(...) Logger::getLogger()->critical(__VA_ARGS__)
+#define LOG_CRITICAL(...) SPDLOG_LOGGER_CRITICAL(Logger::getLogger(), __VA_ARGS__)
