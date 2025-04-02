@@ -17,7 +17,12 @@
 
 using namespace std;
 
-// 생성자 - 병렬 처리 및 API 선택 초기화
+/**
+ * @brief 서비스 수집기 생성자
+ * 
+ * @param threads 병렬 처리에 사용할 스레드 수
+ * @param useNative 네이티브 API 사용 여부
+ */
 ServiceCollector::ServiceCollector(int threads, bool useNative) : maxThreads(max(1, threads)),
                                                                   useNativeAPI(useNative),
                                                                   stopBackgroundThread(false)
@@ -26,11 +31,21 @@ ServiceCollector::ServiceCollector(int threads, bool useNative) : maxThreads(max
     startBackgroundUpdate();
 }
 
+/**
+ * @brief 네이티브 API 사용 여부 설정
+ * 
+ * @param use 네이티브 API 사용 여부
+ */
 void ServiceCollector::setUseNativeAPI(bool use)
 {
     useNativeAPI = use;
 }
 
+/**
+ * @brief 서비스 정보 수집 메서드
+ * 
+ * 백그라운드에서 이미 수집된 데이터를 사용하고 필요한 경우 특정 서비스에 대한 추가 정보만 업데이트합니다.
+ */
 void ServiceCollector::collect()
 {
     // 백그라운드에서 이미 수집된 데이터 사용
@@ -59,7 +74,12 @@ void ServiceCollector::collect()
     }
 }
 
-// 모든 서비스 정보를 최적화된 방식으로 수집
+/**
+ * @brief 모든 서비스 정보를 최적화된 방식으로 수집
+ * 
+ * 시스템 명령어를 실행하여 서비스 목록을 가져오고, 변경된 서비스를 감지하여 업데이트합니다.
+ * 병렬 처리와 캐싱을 통해 성능을 최적화합니다.
+ */
 void ServiceCollector::collectAllServicesInfo()
 {
     // 메모리 재할당 줄이기
@@ -231,7 +251,13 @@ void ServiceCollector::collectAllServicesInfo()
     }
 }
 
-// 두 서비스 정보 간의 중요한 변경 여부 확인
+/**
+ * @brief 두 서비스 정보 간의 중요한 변경 여부 확인
+ * 
+ * @param oldInfo 이전 서비스 정보
+ * @param newInfo 새 서비스 정보
+ * @return bool 중요한 변경이 있으면 true, 없으면 false
+ */
 bool ServiceCollector::hasServiceChanged(const ServiceInfo &oldInfo, const ServiceInfo &newInfo) const
 {
     return (oldInfo.status != newInfo.status ||
@@ -239,7 +265,13 @@ bool ServiceCollector::hasServiceChanged(const ServiceInfo &oldInfo, const Servi
             oldInfo.active_state != newInfo.active_state);
 }
 
-// 기존 서비스 목록 수집 메서드 (최적화)
+/**
+ * @brief 기존 서비스 목록 수집 메서드
+ * 
+ * systemctl 명령어를 사용하여 시스템의 모든 서비스 목록을 가져옵니다.
+ * 
+ * @param result 수집된 서비스 정보를 저장할 벡터
+ */
 void ServiceCollector::collectServiceList(vector<ServiceInfo> &result)
 {
     // 모든 서비스를 한 번에 가져오는 명령으로 최적화
@@ -283,7 +315,15 @@ void ServiceCollector::collectServiceList(vector<ServiceInfo> &result)
     }
 }
 
-// 서비스 상세 정보 수집 (최적화)
+/**
+ * @brief 서비스 상세 정보 수집
+ * 
+ * 특정 서비스의 상세 정보(타입, 상태, 자원 사용량 등)를 수집합니다.
+ * 캐싱 메커니즘을 사용하여 불필요한 업데이트를 방지합니다.
+ * 
+ * @param service 상세 정보를 수집할 서비스 객체
+ * @param forceUpdate 강제 업데이트 여부, 기본값은 false
+ */
 void ServiceCollector::collectServiceDetails(ServiceInfo &service, bool forceUpdate)
 {
     // 캐싱된 정보 확인 - 강제 업데이트가 아니면 캐시 사용
@@ -370,7 +410,14 @@ void ServiceCollector::collectServiceDetails(ServiceInfo &service, bool forceUpd
     updateCachedInfo(service.name, service);
 }
 
-// 자원 사용량 수집 (기존과 동일)
+/**
+ * @brief 서비스의 자원 사용량 수집
+ * 
+ * 프로세스 ID를 기반으로 서비스의 메모리 사용량과 CPU 사용률을 수집합니다.
+ * 
+ * @param service 자원 사용량을 수집할 서비스 객체
+ * @param pid 서비스의 프로세스 ID
+ */
 void ServiceCollector::collectResourceUsageByPID(ServiceInfo &service, const string &pid)
 {
     try
@@ -421,7 +468,14 @@ void ServiceCollector::collectResourceUsageByPID(ServiceInfo &service, const str
     }
 }
 
-// 캐시 정보 업데이트
+/**
+ * @brief 캐시 정보 업데이트
+ * 
+ * 서비스 정보를 캐시에 저장하고 최종 업데이트 시간을 기록합니다.
+ * 
+ * @param name 서비스 이름
+ * @param info 업데이트할 서비스 정보
+ */
 void ServiceCollector::updateCachedInfo(const string &name, const ServiceInfo &info)
 {
     lock_guard<mutex> lock(cacheMutex);
@@ -442,6 +496,13 @@ void ServiceCollector::updateCachedInfo(const string &name, const ServiceInfo &i
     }
 }
 
+/**
+ * @brief 더 이상 존재하지 않는 서비스 제거
+ * 
+ * 현재 시스템에 존재하지 않는 서비스를 결과 목록에서 제거합니다.
+ * 
+ * @param currentServices 현재 시스템에 존재하는 서비스 목록
+ */
 void ServiceCollector::removeObsoleteServices(const vector<ServiceInfo> &currentServices)
 {
     // 현재 시스템에 존재하지 않는 서비스 제거
@@ -458,6 +519,11 @@ void ServiceCollector::removeObsoleteServices(const vector<ServiceInfo> &current
         serviceInfo.end());
 }
 
+/**
+ * @brief 모든 서비스 정보 초기화
+ * 
+ * 수집된 서비스 정보와 캐시를 모두 비웁니다.
+ */
 void ServiceCollector::clear()
 {
     serviceInfo.clear();
@@ -465,16 +531,33 @@ void ServiceCollector::clear()
     serviceInfoCache.clear();
 }
 
+/**
+ * @brief 수집된 서비스 정보 반환 (복사본)
+ * 
+ * @return vector<ServiceInfo> 서비스 정보 벡터의 복사본
+ */
 vector<ServiceInfo> ServiceCollector::getServiceInfo() const
 {
     return serviceInfo;
 }
 
+/**
+ * @brief 수집된 서비스 정보 참조 반환
+ * 
+ * @return const vector<ServiceInfo>& 서비스 정보 벡터의 참조
+ */
 const vector<ServiceInfo> &ServiceCollector::getServiceInfoRef() const
 {
     return serviceInfo;
 }
 
+/**
+ * @brief 특정 서비스의 정보 업데이트
+ * 
+ * 이름으로 서비스를 찾아 정보를 업데이트하거나, 없는 경우 새로 추가합니다.
+ * 
+ * @param newInfo 업데이트할 서비스 정보
+ */
 void ServiceCollector::updateServiceInfo(const ServiceInfo &newInfo)
 {
     // 이름으로 서비스 찾기
@@ -497,7 +580,11 @@ void ServiceCollector::updateServiceInfo(const ServiceInfo &newInfo)
     updateCachedInfo(newInfo.name, newInfo);
 }
 
-// 네이티브 API를 사용한 정보 수집 메서드
+/**
+ * @brief 네이티브 API를 사용한 정보 수집
+ * 
+ * systemd의 네이티브 D-Bus API를 사용하여 서비스 정보를 수집합니다.
+ */
 void ServiceCollector::collectUsingNativeAPI()
 {
     LOG_INFO("네이티브 systemd API를 사용한 서비스 정보 수집");
@@ -638,7 +725,13 @@ void ServiceCollector::collectUsingNativeAPI()
     }
 }
 
-// 네이티브 API를 사용한 서비스 상세 정보 수집
+/**
+ * @brief 네이티브 API를 사용한 서비스 상세 정보 수집
+ * 
+ * systemd의 D-Bus API를 사용하여 특정 서비스의 상세 정보를 수집합니다.
+ * 
+ * @param service 상세 정보를 수집할 서비스 객체
+ */
 void ServiceCollector::collectServiceDetailsNative(ServiceInfo &service)
 {
     sd_bus *bus = NULL;
@@ -693,7 +786,14 @@ void ServiceCollector::collectServiceDetailsNative(ServiceInfo &service)
     updateCachedInfo(service.name, service);
 }
 
-// 모든 서비스의 활성화 상태를 한 번에 수집
+/**
+ * @brief 모든 서비스의 활성화 상태를 한 번에 수집
+ * 
+ * D-Bus API를 사용하여 모든 서비스의 활성화 상태를 효율적으로 수집합니다.
+ * 
+ * @param bus D-Bus 연결 객체
+ * @param enabledStates 서비스 이름과 활성화 상태를 매핑할 맵
+ */
 void ServiceCollector::collectAllEnabledStatesAtOnce(sd_bus *bus, map<string, bool> &enabledStates)
 {
     sd_bus_error error = SD_BUS_ERROR_NULL;
@@ -767,7 +867,11 @@ void ServiceCollector::collectAllEnabledStatesAtOnce(sd_bus *bus, map<string, bo
     sd_bus_error_free(&error);
 }
 
-// 기본 서비스 정보만 수집하는 메서드 구현
+/**
+ * @brief 기본 서비스 정보만 수집
+ * 
+ * 서비스의 기본 정보만 빠르게 수집합니다. 전체 업데이트와 부분 업데이트를 시간에 따라 결정합니다.
+ */
 void ServiceCollector::collectBasicServiceInfo()
 {
     auto now = chrono::system_clock::now();
@@ -798,7 +902,11 @@ void ServiceCollector::collectBasicServiceInfo()
     }
 }
 
-// 변경된 서비스만 업데이트하는 메서드
+/**
+ * @brief 변경된 서비스만 업데이트
+ * 
+ * 시스템에서 변경된 서비스만 식별하여 업데이트합니다.
+ */
 void ServiceCollector::updateChangedServicesOnly()
 {
     // systemctl list-units --state=changed로 변경된 서비스만 확인
@@ -876,9 +984,19 @@ void ServiceCollector::updateChangedServicesOnly()
     }
 }
 
-// 여러 속성을 한 번에 가져오는 도우미 메서드
+/**
+ * @brief 여러 속성을 한 번에 가져오는 도우미 메서드
+ * 
+ * D-Bus API를 사용하여 여러 속성을 단일 호출로 효율적으로 가져옵니다.
+ * 
+ * @param bus D-Bus 연결 객체
+ * @param service_path 서비스 경로
+ * @param properties 가져올 속성 배열
+ * @param count 속성 배열의 크기
+ * @return bool 속성 가져오기 성공 여부
+ */
 bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_path,
-                                             const char *properties[], int count)
+                                          const char *properties[], int count)
 {
     sd_bus_error error = SD_BUS_ERROR_NULL;
     sd_bus_message *reply = NULL;
@@ -950,7 +1068,11 @@ bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_pa
     return foundCount > 0;
 }
 
-// 소멸자 - sd-bus 객체 해제
+/**
+ * @brief 소멸자
+ * 
+ * 백그라운드 업데이트를 중지하고 D-Bus 연결을 해제합니다.
+ */
 ServiceCollector::~ServiceCollector()
 {
     // 백그라운드 업데이트 중지
@@ -963,7 +1085,13 @@ ServiceCollector::~ServiceCollector()
     }
 }
 
-// 상세 정보 수집이 필요한 서비스 추가
+/**
+ * @brief 상세 정보 수집이 필요한 서비스 추가
+ * 
+ * 우선적으로 상세 정보를 수집할 서비스 목록에 추가합니다.
+ * 
+ * @param serviceName 추가할 서비스 이름
+ */
 void ServiceCollector::addRequiredDetailedService(const string &serviceName)
 {
     if (find(requiredDetailedServices.begin(), requiredDetailedServices.end(), serviceName) == requiredDetailedServices.end())
@@ -972,13 +1100,21 @@ void ServiceCollector::addRequiredDetailedService(const string &serviceName)
     }
 }
 
-// 상세 정보 수집 목록 초기화
+/**
+ * @brief 상세 정보 수집 목록 초기화
+ * 
+ * 우선적으로 상세 정보를 수집할 서비스 목록을 비웁니다.
+ */
 void ServiceCollector::clearRequiredDetailedServices()
 {
     requiredDetailedServices.clear();
 }
 
-// 백그라운드 태스크 실행
+/**
+ * @brief 백그라운드 태스크 실행
+ * 
+ * 백그라운드에서 주기적으로 서비스 정보를 수집하는 태스크입니다.
+ */
 void ServiceCollector::backgroundUpdateTask()
 {
     while (!stopBackgroundThread)
@@ -1009,12 +1145,22 @@ void ServiceCollector::backgroundUpdateTask()
     }
 }
 
+/**
+ * @brief 백그라운드 업데이트 시작
+ * 
+ * 백그라운드 스레드를 생성하여 주기적인 정보 수집을 시작합니다.
+ */
 void ServiceCollector::startBackgroundUpdate()
 {
     stopBackgroundThread = false;
     backgroundUpdateThread = thread(&ServiceCollector::backgroundUpdateTask, this);
 }
 
+/**
+ * @brief 백그라운드 업데이트 중지
+ * 
+ * 백그라운드 스레드를 안전하게 종료합니다.
+ */
 void ServiceCollector::stopBackgroundUpdate()
 {
     stopBackgroundThread = true;
@@ -1024,7 +1170,13 @@ void ServiceCollector::stopBackgroundUpdate()
     }
 }
 
-// 비동기 네이티브 API 사용 서비스 수집
+/**
+ * @brief 비동기 네이티브 API 사용 서비스 수집
+ * 
+ * 백그라운드 스레드에서 네이티브 API를 사용하여 서비스 정보를 수집합니다.
+ * 
+ * @return vector<ServiceInfo> 수집된 서비스 정보 벡터
+ */
 vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
 {
     vector<ServiceInfo> result;
@@ -1249,7 +1401,13 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
     return result;
 }
 
-// 비동기 서비스 정보 수집
+/**
+ * @brief 비동기 서비스 정보 수집
+ * 
+ * 백그라운드 스레드에서 효율적으로 서비스 정보를 수집합니다.
+ * 
+ * @return vector<ServiceInfo> 수집된 서비스 정보 벡터
+ */
 vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
 {
     vector<ServiceInfo> result;
@@ -1348,7 +1506,13 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
     return result;
 }
 
-// 수집된 서비스 정보 병합
+/**
+ * @brief 수집된 서비스 정보 병합
+ * 
+ * 백그라운드에서 수집된 서비스 정보를 기존 캐시와 병합합니다.
+ * 
+ * @param updatedServices 업데이트된 서비스 정보 벡터
+ */
 void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServices)
 {
     // 기존 캐시와 업데이트된 서비스 정보 병합

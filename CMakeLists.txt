@@ -24,6 +24,8 @@ find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json REQUIRED)
+# zlib 라이브러리 추가
+find_package(ZLIB REQUIRED)
 
 # libstatgrab 라이브러리
 pkg_check_modules(STATGRAB REQUIRED libstatgrab)
@@ -92,6 +94,7 @@ target_include_directories(${EXECUTABLE_NAME} PRIVATE
     ${CURL_INCLUDE_DIRS}
     ${SYSTEMD_INCLUDE_DIRS}
     ${WEBSOCKETPP_INCLUDE_DIR}
+    ${ZLIB_INCLUDE_DIRS}
 )
 
 # 모든 라이브러리를 한 번에 링크
@@ -104,7 +107,46 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE
     ${PROCPS_LIBRARIES}
     ${JSONCPP_LIBRARIES}
     OpenSSL::Crypto
+    OpenSSL::SSL
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     ${SYSTEMD_LIBRARIES}
+    ZLIB::ZLIB
 )
+
+# Doxygen 설정 수정
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    # Doxyfile.in 파일 생성
+    file(WRITE ${CMAKE_SOURCE_DIR}/Doxyfile.in "
+        OUTPUT_DIRECTORY       = ${CMAKE_SOURCE_DIR}/docs
+        PROJECT_NAME          = \"${PROJECT_NAME}\"
+        PROJECT_NUMBER        = ${PROJECT_VERSION}
+        EXTRACT_ALL           = YES
+        EXTRACT_PRIVATE       = YES
+        EXTRACT_STATIC        = YES
+        GENERATE_HTML         = YES
+        GENERATE_LATEX        = NO
+        USE_MDFILE_AS_MAINPAGE = README.md
+        COLLABORATION_GRAPH   = YES
+        CLASS_GRAPH          = YES
+        CALL_GRAPH           = YES
+        CALLER_GRAPH         = YES
+        RECURSIVE            = YES
+        INPUT               = ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/README.md
+        FILE_PATTERNS       = *.cpp *.h *.hpp *.md
+        HAVE_DOT            = YES
+        DOT_PATH            = 
+    ")
+
+    # Doxyfile 생성
+    configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+
+    # docs 타겟 추가
+    add_custom_target(docs
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "문서 생성 중..."
+        VERBATIM
+    )
+endif()

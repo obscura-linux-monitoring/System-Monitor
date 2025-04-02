@@ -14,11 +14,34 @@
 #include <iostream>
 #include "log/logger.h"
 
+/**
+ * @class DockerCollector
+ * @brief Docker 컨테이너 정보 수집을 담당하는 클래스
+ * 
+ * Docker API를 사용하여 실행 중인 모든 컨테이너의 상세 정보와 리소스 사용량을 수집합니다.
+ * 성능 최적화를 위해 curl 핸들 풀링, 비동기 처리, 결과 캐싱 기법을 사용합니다.
+ * Docker 유닉스 소켓(/var/run/docker.sock)에 연결하여 정보를 수집합니다.
+ */
+
 using namespace std;
 using json = nlohmann::json;
 
+/**
+ * @brief Docker API로부터 데이터를 수신하기 위한 콜백 함수
+ * 
+ * @param contents 수신된 데이터
+ * @param size 각 데이터 항목의 크기
+ * @param nmemb 데이터 항목의 개수
+ * @param userp 사용자 제공 데이터 포인터 (일반적으로 결과를 저장할 문자열)
+ * @return 처리된 바이트 수
+ */
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
+/**
+ * @brief DockerCollector 클래스의 생성자
+ * 
+ * CURL을 글로벌하게 초기화하고 curl 핸들 풀을 설정합니다.
+ */
 DockerCollector::DockerCollector()
 {
     // CURL 글로벌 초기화 - 프로그램 시작시 한 번만 호출
@@ -28,6 +51,11 @@ DockerCollector::DockerCollector()
     initCurlPool();
 }
 
+/**
+ * @brief DockerCollector 클래스의 소멸자
+ * 
+ * 모든 curl 핸들을 정리하고 CURL 글로벌 리소스를 해제합니다.
+ */
 DockerCollector::~DockerCollector()
 {
     // 핸들 풀 정리
@@ -41,7 +69,13 @@ DockerCollector::~DockerCollector()
     curl_global_cleanup();
 }
 
-// curl 핸들 풀 초기화
+/**
+ * @brief curl 핸들 풀을 초기화합니다
+ * 
+ * 지정된 수의 curl 핸들을 생성하고 기본 옵션을 설정합니다.
+ * 
+ * @param poolSize 생성할 curl 핸들의 수
+ */
 void DockerCollector::initCurlPool(size_t poolSize)
 {
     for (size_t i = 0; i < poolSize; i++)
@@ -57,7 +91,13 @@ void DockerCollector::initCurlPool(size_t poolSize)
     }
 }
 
-// curl 핸들 획득
+/**
+ * @brief 풀에서 curl 핸들을 획득합니다
+ * 
+ * 사용 가능한 핸들이 없으면 새로운 핸들을 생성합니다.
+ * 
+ * @return CURL* 사용할 준비가 된 curl 핸들, 실패 시 nullptr
+ */
 CURL *DockerCollector::getCurlHandle()
 {
     lock_guard<mutex> lock(curlPoolMutex);
@@ -82,7 +122,13 @@ CURL *DockerCollector::getCurlHandle()
     return handle;
 }
 
-// curl 핸들 반환
+/**
+ * @brief 사용한 curl 핸들을 풀에 반환합니다
+ * 
+ * 핸들을 초기화하고 기본 옵션을 다시 설정한 후 풀에 추가합니다.
+ * 
+ * @param handle 반환할 curl 핸들
+ */
 void DockerCollector::returnCurlHandle(CURL *handle)
 {
     lock_guard<mutex> lock(curlPoolMutex);
@@ -101,12 +147,24 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return size * nmemb;
 }
 
+/**
+ * @brief 컨테이너의 포트 정보를 포트 번호 기준으로 정렬합니다
+ * 
+ * @param container 포트를 정렬할 컨테이너 정보 구조체
+ */
 void DockerCollector::sortPorts(DockerContainerInfo &container)
 {
     sort(container.container_ports.begin(), container.container_ports.end(), [](const DockerContainerPort &a, const DockerContainerPort &b)
          { return a.container_port < b.container_port; });
 }
 
+/**
+ * @brief Docker API를 통해 컨테이너 정보를 수집합니다
+ * 
+ * Docker 소켓에 연결하여 실행 중인 모든 컨테이너의 정보를 가져옵니다.
+ * 컨테이너별로 상세 정보, 통계, 네트워크, 볼륨 등의 데이터를 수집합니다.
+ * 성능 최적화를 위해 캐싱 및 비동기 처리를 활용합니다.
+ */
 void DockerCollector::collect()
 {
     CURL *curl = getCurlHandle();
@@ -640,6 +698,11 @@ void DockerCollector::collect()
     }
 }
 
+/**
+ * @brief 수집된 컨테이너 정보 목록을 반환합니다
+ * 
+ * @return 수집된 Docker 컨테이너 정보의 벡터
+ */
 vector<DockerContainerInfo> DockerCollector::getContainers() const
 {
     return containers;

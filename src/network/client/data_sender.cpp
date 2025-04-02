@@ -4,6 +4,13 @@
 
 using namespace std;
 
+/**
+ * @brief DataSender 클래스 생성자
+ * 
+ * @param serverInfo 연결할 서버 정보 (주소, 포트)
+ * @param dataQueue 전송할 시스템 메트릭 데이터를 저장하는 스레드 안전 큐
+ * @param user_id 사용자 식별자
+ */
 DataSender::DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue, const string &user_id)
     : serverInfo_(serverInfo), dataQueue_(dataQueue), user_id_(user_id), isConnected_(false), running_(false)
 {
@@ -22,12 +29,22 @@ DataSender::DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetri
         });
 }
 
+/**
+ * @brief DataSender 클래스 소멸자
+ * 
+ * 데이터 전송을 중지하고 서버와의 연결을 종료합니다.
+ */
 DataSender::~DataSender()
 {
     stopSending();
     disconnect();
 }
 
+/**
+ * @brief 서버에 WebSocket 연결을 시도합니다.
+ * 
+ * @return 연결 성공 시 true, 실패 시 false 반환
+ */
 bool DataSender::connect()
 {
     // URI에 '/ws' 경로 추가
@@ -71,6 +88,11 @@ bool DataSender::connect()
     }
 }
 
+/**
+ * @brief 서버와의 WebSocket 연결을 종료합니다.
+ * 
+ * 연결이 활성화된 경우 정상적으로 종료하고 관련 리소스를 정리합니다.
+ */
 void DataSender::disconnect()
 {
     if (isConnected_)
@@ -102,6 +124,11 @@ void DataSender::disconnect()
     }
 }
 
+/**
+ * @brief 데이터 전송 작업을 시작합니다.
+ * 
+ * @param intervalSeconds 데이터 전송 간격(초)
+ */
 void DataSender::startSending(int intervalSeconds)
 {
     if (running_)
@@ -111,6 +138,11 @@ void DataSender::startSending(int intervalSeconds)
     senderThread_ = thread(&DataSender::sendLoop, this, intervalSeconds);
 }
 
+/**
+ * @brief 데이터 전송 작업을 중지합니다.
+ * 
+ * 실행 중인 전송 스레드를 안전하게 종료합니다.
+ */
 void DataSender::stopSending()
 {
     if (!running_)
@@ -124,6 +156,13 @@ void DataSender::stopSending()
     }
 }
 
+/**
+ * @brief 데이터 전송 루프를 실행하는 메서드
+ * 
+ * 지정된 간격으로 큐에서 시스템 메트릭 데이터를 가져와 서버로 전송합니다.
+ * 
+ * @param intervalSeconds 전송 간격(초)
+ */
 void DataSender::sendLoop(int intervalSeconds)
 {
     while (running_ && isConnected_)
@@ -150,6 +189,15 @@ void DataSender::sendLoop(int intervalSeconds)
     }
 }
 
+/**
+ * @brief 시스템 메트릭 데이터를 서버로 전송합니다.
+ * 
+ * 시스템 메트릭 데이터를 JSON 형식으로 변환하여 WebSocket을 통해 서버로 전송합니다.
+ * 전송 시작/종료 시간 및 소요 시간을 기록하고 로그로 출력합니다.
+ * 
+ * @param metrics 전송할 시스템 메트릭 데이터
+ * @return 전송 성공 시 true, 실패 시 false 반환
+ */
 bool DataSender::sendMetrics(const SystemMetrics &metrics)
 {
     if (!isConnected_)
@@ -196,6 +244,12 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
     return !ec;
 }
 
+/**
+ * @brief 서버로부터 수신된 메시지를 처리하는 핸들러
+ * 
+ * @param hdl WebSocket 연결 핸들
+ * @param msg 수신된 메시지 포인터
+ */
 void DataSender::handleMessage(WebsocketHandle hdl, WebsocketClient::message_ptr msg)
 {
     (void)hdl;

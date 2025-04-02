@@ -18,6 +18,11 @@
 
 using namespace std;
 
+/**
+ * @brief DiskCollector 클래스 생성자
+ * 
+ * 스레드 풀을 초기화하고 디스크 정보를 처음으로 수집합니다.
+ */
 DiskCollector::DiskCollector() : last_collect_time(chrono::steady_clock::now())
 {
     // 스레드 풀 초기화
@@ -29,6 +34,11 @@ DiskCollector::DiskCollector() : last_collect_time(chrono::steady_clock::now())
     collectDiskInfo();
 }
 
+/**
+ * @brief DiskCollector 클래스 소멸자
+ * 
+ * 스레드 풀을 정리하고 수집된 디스크 통계 데이터를 삭제합니다.
+ */
 DiskCollector::~DiskCollector()
 {
     // 스레드 풀 정리
@@ -46,6 +56,15 @@ DiskCollector::~DiskCollector()
     disk_stats.clear();
 }
 
+/**
+ * @brief 시스템의 모든 디스크 정보를 수집합니다.
+ * 
+ * /proc/mounts 파일에서 마운트된 디스크 목록을 읽고 실제 물리적 디스크나
+ * 일반적인 파일 시스템만 처리합니다. 각 디스크에 대한 기본 정보를 수집하고
+ * 사용량 정보를 업데이트합니다.
+ * 
+ * @throw runtime_error /proc/mounts 파일을 열 수 없을 때 발생
+ */
 void DiskCollector::collectDiskInfo()
 {
     disk_stats.clear();
@@ -83,7 +102,12 @@ void DiskCollector::collectDiskInfo()
     updateDiskUsage();
 }
 
-// 디스크 사용량 정보만 업데이트하는 새로운 함수
+/**
+ * @brief 디스크 사용량 정보만 비동기적으로 업데이트합니다.
+ * 
+ * 각 디스크에 대해 비동기 작업을 생성하여 사용량 정보를 수집합니다.
+ * 작업에 타임아웃이 적용되며 모든 작업이 완료된 후 I/O 통계 정보도 업데이트합니다.
+ */
 void DiskCollector::updateDiskUsage()
 {
     pending_tasks.clear();
@@ -151,7 +175,13 @@ void DiskCollector::updateDiskUsage()
     }
 }
 
-// I/O 통계 정보를 업데이트하는 함수 개선
+/**
+ * @brief I/O 통계 정보를 업데이트합니다.
+ * 
+ * /proc/diskstats 파일에서 디스크 I/O 통계 정보를 읽어와 각 디스크에 대한
+ * 읽기/쓰기 작업 수, 읽기/쓰기 바이트 수, I/O 시간 등의 정보를 업데이트합니다.
+ * 이전 통계와 비교하여 초당 읽기/쓰기 속도도 계산합니다.
+ */
 void DiskCollector::updateIoStats()
 {
     auto current_time = chrono::steady_clock::now();
@@ -244,7 +274,15 @@ void DiskCollector::updateIoStats()
     // 필요시 부모 디스크 정보로 파티션 정보 보완
 }
 
-// 장치 이름 추출 함수 추가
+/**
+ * @brief 장치 경로에서 장치 이름만 추출합니다.
+ * 
+ * 다양한 형식의 장치 경로(/dev/mapper/vg-lv, /dev/md0, /dev/nvme0n1p1 등)에서
+ * 실제 장치 이름만 추출합니다. 필요시 Linux 시스템의 디바이스 매핑 정보도 확인합니다.
+ * 
+ * @param device_path 장치 경로 (예: /dev/sda, /dev/mapper/vg-lv)
+ * @return string 추출된 장치 이름 (예: sda, dm-0, md0)
+ */
 string DiskCollector::extractDeviceName(const string &device_path)
 {
     // /dev/mapper/vg-lv, /dev/md0, /dev/nvme0n1p1 등 다양한 형식 지원
@@ -293,7 +331,15 @@ string DiskCollector::extractDeviceName(const string &device_path)
     return device_path;
 }
 
-// 새로운 헬퍼 함수 추가
+/**
+ * @brief 파티션 이름으로부터 부모 디스크 이름을 추출합니다.
+ * 
+ * 파티션 이름(예: sda1, nvme0n1p1, mmcblk0p1)을 분석하여 해당 파티션이
+ * 속한 부모 디스크 이름(예: sda, nvme0n1, mmcblk0)을 반환합니다.
+ * 
+ * @param partition 파티션 이름
+ * @return string 부모 디스크 이름
+ */
 string DiskCollector::getParentDisk(const string &partition)
 {
     // 일반적인 sda1 → sda 형식 변환
@@ -349,6 +395,13 @@ string DiskCollector::getParentDisk(const string &partition)
     return parent;
 }
 
+/**
+ * @brief 디스크 정보를 수집합니다.
+ * 
+ * 주기적으로 호출되어 시스템의 디스크 정보를 업데이트합니다.
+ * 디스크 구성이 변경된 경우 전체 디스크 정보를 다시 수집하고,
+ * 그렇지 않은 경우 기존 디스크의 사용량 정보만 업데이트합니다.
+ */
 void DiskCollector::collect()
 {
     auto current_time = chrono::steady_clock::now();
@@ -366,11 +419,24 @@ void DiskCollector::collect()
     }
 }
 
+/**
+ * @brief 수집된 디스크 통계 정보를 반환합니다.
+ * 
+ * @return vector<DiskInfo> 수집된 모든 디스크의 정보
+ */
 vector<DiskInfo> DiskCollector::getDiskStats() const
 {
     return disk_stats;
 }
 
+/**
+ * @brief 시스템의 디스크 구성 변경을 감지합니다.
+ * 
+ * /proc/partitions 파일의 내용을 모니터링하여 디스크나 파티션의
+ * 추가/제거와 같은 변경사항을 감지합니다.
+ * 
+ * @return bool 디스크 구성이 변경되었으면 true, 그렇지 않으면 false
+ */
 bool DiskCollector::detectDiskChanges()
 {
     // 추가: 파티션 테이블 변경 확인
@@ -396,7 +462,12 @@ bool DiskCollector::detectDiskChanges()
     return false;
 }
 
-// 스레드 풀 워커 함수
+/**
+ * @brief 스레드 풀의 작업자 스레드 함수입니다.
+ * 
+ * 작업 큐에서 태스크를 가져와 실행합니다.
+ * 종료 신호가 있거나 작업 큐가 비어있을 때까지 대기합니다.
+ */
 void DiskCollector::threadWorker()
 {
     while (!stop_threads)
@@ -430,7 +501,11 @@ void DiskCollector::threadWorker()
     }
 }
 
-// 작업 추가 함수
+/**
+ * @brief 작업 큐에 새 태스크를 추가합니다.
+ * 
+ * @param task 실행할 함수 객체
+ */
 void DiskCollector::addTask(std::function<void()> task)
 {
     {
@@ -440,7 +515,11 @@ void DiskCollector::addTask(std::function<void()> task)
     cv.notify_one();
 }
 
-// 모든 작업 완료 대기
+/**
+ * @brief 모든 작업이 완료될 때까지 대기합니다.
+ * 
+ * 작업 큐가 비어있고 현재 실행 중인 작업이 없을 때까지 대기합니다.
+ */
 void DiskCollector::waitForTasks()
 {
     while (true)

@@ -7,20 +7,41 @@
 
 using namespace std;
 
+/**
+ * @brief SystemInfoCollector 클래스의 생성자
+ * 
+ * SystemInfo 구조체를 초기화합니다.
+ */
 SystemInfoCollector::SystemInfoCollector()
 {
     system_info = SystemInfo{};
 }
 
+/**
+ * @brief SystemInfoCollector 클래스의 소멸자
+ */
 SystemInfoCollector::~SystemInfoCollector()
 {
 }
 
+/**
+ * @brief 수집된 시스템 정보를 반환합니다.
+ * 
+ * @return 시스템 정보가 담긴 SystemInfo 구조체의 상수 참조
+ */
 const SystemInfo &SystemInfoCollector::getSystemInfo() const
 {
     return system_info;
 }
 
+/**
+ * @brief 시스템 정보를 수집하는 메소드
+ * 
+ * 다음과 같은 시스템 정보를 수집합니다:
+ * - 호스트 이름
+ * - 운영 체제 정보(이름, 버전, 커널 버전, 아키텍처)
+ * - 시스템 부팅 시간 및 가동 시간
+ */
 void SystemInfoCollector::collect()
 {
     // 호스트 이름 수집

@@ -1,3 +1,9 @@
+/**
+ * @file system_client.cpp
+ * @brief 시스템 클라이언트 구현
+ * @details 서버와의 통신을 관리하고 시스템 메트릭을 수집하여 전송하는 클라이언트 클래스 구현
+ */
+
 #include "network/client/system_client.h"
 #include "collectors/collector_manager.h"
 #include "network/client/data_sender.h"
@@ -14,6 +20,17 @@ using namespace std;
 
 bool isDisconnected_ = false;
 
+/**
+ * @brief SystemClient 클래스의 생성자
+ * 
+ * @param serverInfo 서버 연결 정보
+ * @param systemKey 시스템 식별 키
+ * @param collectionInterval 메트릭 수집 간격(초)
+ * @param sendingInterval 데이터 전송 간격(초)
+ * @param user_id 사용자 ID
+ * 
+ * @details 시스템 클라이언트를 초기화하고 CollectorManager와 DataSender를 설정합니다.
+ */
 SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey,
                            int collectionInterval, int sendingInterval, const string &user_id)
     : serverInfo_(serverInfo), systemKey_(systemKey),
@@ -43,11 +60,26 @@ SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey
     LOG_INFO("시스템 클라이언트 초기화 완료: {}, 소요 시간: {}ms", endTimestamp, initDuration.count());
 }
 
+/**
+ * @brief SystemClient 클래스의 소멸자
+ * 
+ * @details 클라이언트 연결을 안전하게 종료하고 리소스를 정리합니다.
+ */
 SystemClient::~SystemClient()
 {
     disconnect();
 }
 
+/**
+ * @brief 서버에 연결하고 데이터 수집 및 전송을 시작
+ * 
+ * @details 
+ * 1. 수집 관리자를 시작하여 메트릭 수집 시작
+ * 2. 데이터 송신기를 통해 서버에 연결
+ * 3. 정기적인 데이터 전송 시작
+ * 
+ * @return void
+ */
 void SystemClient::connect()
 {
     // 시작 시간 기록
@@ -79,6 +111,16 @@ void SystemClient::connect()
     LOG_INFO("시스템 클라이언트 연결 {} : {}, 소요 시간: {}ms", (connected ? "성공" : "실패"), endTimestamp, connectDuration.count());
 }
 
+/**
+ * @brief 서버 연결을 종료하고 데이터 수집 및 전송을 중지
+ * 
+ * @details 다음 순서로 안전하게 종료합니다:
+ * 1. 데이터 송신 중지
+ * 2. 메트릭 수집 중지
+ * 3. 서버 연결 해제
+ * 
+ * @return void
+ */
 void SystemClient::disconnect()
 {
     if (isDisconnected_)
@@ -107,6 +149,11 @@ void SystemClient::disconnect()
     LOG_INFO("시스템 클라이언트가 정상적으로 종료되었습니다.");
 }
 
+/**
+ * @brief 서버 연결 상태 확인
+ * 
+ * @return bool 서버에 연결되어 있으면 true, 아니면 false
+ */
 bool SystemClient::isConnected() const
 {
     return dataSender_ && dataSender_->isConnected();

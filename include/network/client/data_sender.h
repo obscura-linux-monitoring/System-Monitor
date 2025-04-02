@@ -14,49 +14,108 @@
 
 using namespace std;
 
+/**
+ * @file data_sender.h
+ * @brief 시스템 메트릭 데이터를 서버로 전송하기 위한 클래스를 정의합니다.
+ * @author System Monitor Team
+ */
+
+/**
+ * @class DataSender
+ * @brief WebSocket을 통해 시스템 메트릭 데이터를 서버로 전송하는 클래스
+ *
+ * 이 클래스는 시스템에서 수집된 메트릭 데이터를 WebSocket 연결을 통해
+ * 원격 서버로 주기적으로 전송하는 기능을 담당합니다.
+ */
 class DataSender
 {
 public:
+    /**
+     * @brief DataSender 클래스 생성자
+     *
+     * @param serverInfo 연결할 서버 정보 (주소, 포트 등)
+     * @param dataQueue 전송할 시스템 메트릭 데이터가 저장된 스레드 안전 큐
+     * @param user_id 사용자 식별자
+     */
     DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue, const string &user_id);
+
+    /**
+     * @brief DataSender 클래스 소멸자
+     *
+     * 모든 스레드를 종료하고 연결을 닫습니다.
+     */
     ~DataSender();
 
-    // 서버 연결
+    /**
+     * @brief 서버에 WebSocket 연결을 시도합니다.
+     *
+     * @return 연결 성공 여부 (true: 성공, false: 실패)
+     */
     bool connect();
 
-    // 연결 종료
+    /**
+     * @brief 서버와의 WebSocket 연결을 종료합니다.
+     */
     void disconnect();
 
-    // 데이터 전송 시작
+    /**
+     * @brief 데이터 전송 프로세스를 시작합니다.
+     *
+     * @param intervalSeconds 데이터 전송 간격(초 단위), 기본값은 10초
+     */
     void startSending(int intervalSeconds = 10);
 
-    // 데이터 전송 중지
+    /**
+     * @brief 데이터 전송 프로세스를 중지합니다.
+     */
     void stopSending();
 
-    // 연결 상태 확인
+    /**
+     * @brief 서버와의 연결 상태를 확인합니다.
+     *
+     * @return 연결 상태 (true: 연결됨, false: 연결 안됨)
+     */
     bool isConnected() const { return isConnected_; }
 
 private:
+    /// @brief WebSocketPP 클라이언트 타입 정의
     typedef websocketpp::client<websocketpp::config::asio_client> WebsocketClient;
+
+    /// @brief WebSocketPP 연결 핸들 타입 정의
     typedef websocketpp::connection_hdl WebsocketHandle;
 
-    ServerInfo serverInfo_;
-    ThreadSafeQueue<SystemMetrics> &dataQueue_;
-    string user_id_;
+    ServerInfo serverInfo_;                     ///< 서버 연결 정보
+    ThreadSafeQueue<SystemMetrics> &dataQueue_; ///< 전송할 메트릭 데이터 큐
+    string user_id_;                            ///< 사용자 식별자
 
-    WebsocketClient client_;
-    WebsocketHandle connectionHandle_;
-    atomic<bool> isConnected_;
-    atomic<bool> running_;
+    WebsocketClient client_;           ///< WebSocket 클라이언트 인스턴스
+    WebsocketHandle connectionHandle_; ///< 현재 활성화된 WebSocket 연결 핸들
+    atomic<bool> isConnected_;         ///< 서버 연결 상태 플래그
+    atomic<bool> running_;             ///< 데이터 전송 실행 상태 플래그
 
-    thread clientThread_; // WebSocket 통신 스레드
-    thread senderThread_; // 데이터 송신 스레드
+    thread clientThread_; ///< WebSocket 통신 스레드
+    thread senderThread_; ///< 데이터 송신 스레드
 
-    // 데이터 전송 루프
+    /**
+     * @brief 지정된 간격으로 메트릭 데이터를 지속적으로 전송하는 루프
+     *
+     * @param intervalSeconds 전송 간격(초 단위)
+     */
     void sendLoop(int intervalSeconds);
 
-    // 단일 데이터 전송
+    /**
+     * @brief 단일 시스템 메트릭 데이터를 서버로 전송합니다.
+     *
+     * @param metrics 전송할 시스템 메트릭 데이터
+     * @return 전송 성공 여부 (true: 성공, false: 실패)
+     */
     bool sendMetrics(const SystemMetrics &metrics);
 
-    // 메시지 수신 처리
+    /**
+     * @brief 서버로부터 수신된 메시지 처리 콜백 함수
+     *
+     * @param hdl WebSocket 연결 핸들
+     * @param msg 수신된 메시지 포인터
+     */
     void handleMessage(WebsocketHandle hdl, WebsocketClient::message_ptr msg);
 };

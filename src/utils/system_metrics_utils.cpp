@@ -8,7 +8,12 @@
 using namespace std;
 using json = nlohmann::json;
 
-// CPU 코어 정보 변환
+/**
+ * @brief CPU 코어 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param core 변환할 CPU 코어 정보 구조체
+ */
 void to_json(json &j, const CpuCoreInfo &core)
 {
     j = {
@@ -17,7 +22,12 @@ void to_json(json &j, const CpuCoreInfo &core)
         {"temperature", core.temperature}};
 }
 
-// SystemInfo 변환
+/**
+ * @brief 시스템 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param system 변환할 시스템 정보 구조체
+ */
 void to_json(json &j, const SystemInfo &system)
 {
     j = {
@@ -30,7 +40,12 @@ void to_json(json &j, const SystemInfo &system)
         {"boot_time", system.boot_time}};
 }
 
-// CPU 정보 변환
+/**
+ * @brief CPU 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param cpu 변환할 CPU 정보 구조체
+ */
 void to_json(json &j, const CpuInfo &cpu)
 {
     j = {
@@ -53,7 +68,12 @@ void to_json(json &j, const CpuInfo &cpu)
         {"has_sve", cpu.has_sve}};
 }
 
-// 메모리 정보 변환
+/**
+ * @brief 메모리 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param memory 변환할 메모리 정보 구조체
+ */
 void to_json(json &j, const MemoryInfo &memory)
 {
     j = {
@@ -69,6 +89,12 @@ void to_json(json &j, const MemoryInfo &memory)
         {"usage_percent", memory.usage_percent}};
 }
 
+/**
+ * @brief 입출력 통계 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param io 변환할 입출력 통계 정보 구조체
+ */
 void to_json(json &j, const IoStats &io)
 {
     j = {
@@ -87,7 +113,12 @@ void to_json(json &j, const IoStats &io)
         {"error_flag", io.error_flag}};
 }
 
-// 디스크 정보 변환
+/**
+ * @brief 디스크 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param disk 변환할 디스크 정보 구조체
+ */
 void to_json(json &j, const DiskInfo &disk)
 {
     j = {
@@ -106,7 +137,12 @@ void to_json(json &j, const DiskInfo &disk)
         {"error_message", disk.error_message}};
 }
 
-// 네트워크 인터페이스 변환
+/**
+ * @brief 네트워크 인터페이스 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param network 변환할 네트워크 인터페이스 정보 구조체
+ */
 void to_json(json &j, const NetworkInterface &network)
 {
     j = {
@@ -128,7 +164,12 @@ void to_json(json &j, const NetworkInterface &network)
         {"tx_bytes_per_sec", network.tx_bytes_per_sec}};
 }
 
-// 프로세스 정보 변환
+/**
+ * @brief 프로세스 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param process 변환할 프로세스 정보 구조체
+ */
 void to_json(json &j, const ProcessInfo &process)
 {
     j = {
@@ -150,6 +191,12 @@ void to_json(json &j, const ProcessInfo &process)
         {"nice", process.nice}};
 }
 
+/**
+ * @brief 도커 컨테이너 건강 상태 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param health 변환할 도커 컨테이너 건강 상태 정보 구조체
+ */
 void to_json(json &j, const DockerContainerHealth &health)
 {
     j = {
@@ -158,7 +205,12 @@ void to_json(json &j, const DockerContainerHealth &health)
         {"last_check_output", health.last_check_output}};
 }
 
-// 도커 컨테이너 포트 바인딩 변환
+/**
+ * @brief 도커 컨테이너 포트 바인딩 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param port 변환할 도커 컨테이너 포트 바인딩 정보 구조체
+ */
 void to_json(json &j, const DockerContainerPort &port)
 {
     j = {
@@ -167,6 +219,12 @@ void to_json(json &j, const DockerContainerPort &port)
         {"protocol", port.protocol}};
 }
 
+/**
+ * @brief 도커 컨테이너 네트워크 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param network 변환할 도커 컨테이너 네트워크 정보 구조체
+ */
 void to_json(json &j, const DockerContainerNetwork &network)
 {
     j = {
@@ -177,6 +235,12 @@ void to_json(json &j, const DockerContainerNetwork &network)
         {"network_tx_bytes", network.network_tx_bytes}};
 }
 
+/**
+ * @brief 도커 컨테이너 볼륨 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param volume 변환할 도커 컨테이너 볼륨 정보 구조체
+ */
 void to_json(json &j, const DockerContainerVolume &volume)
 {
     j = {
@@ -186,6 +250,12 @@ void to_json(json &j, const DockerContainerVolume &volume)
         {"type", volume.type}};
 }
 
+/**
+ * @brief 도커 컨테이너 환경 변수 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param env 변환할 도커 컨테이너 환경 변수 정보 구조체
+ */
 void to_json(json &j, const DockerContainerEnv &env)
 {
     j = {
@@ -193,6 +263,12 @@ void to_json(json &j, const DockerContainerEnv &env)
         {"value", env.value}};
 }
 
+/**
+ * @brief 도커 컨테이너 라벨 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param label 변환할 도커 컨테이너 라벨 정보 구조체
+ */
 void to_json(json &j, const DockerContainerLabel &label)
 {
     j = {
@@ -200,6 +276,12 @@ void to_json(json &j, const DockerContainerLabel &label)
         {"label_value", label.label_value}};
 }
 
+/**
+ * @brief 도커 컨테이너 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param docker 변환할 도커 컨테이너 정보 구조체
+ */
 void to_json(json &j, const DockerContainerInfo &docker)
 {
     j = {
@@ -227,6 +309,12 @@ void to_json(json &j, const DockerContainerInfo &docker)
         {"restarts", docker.restarts}};
 }
 
+/**
+ * @brief 서비스 정보를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param service 변환할 서비스 정보 구조체
+ */
 void to_json(json &j, const ServiceInfo &service)
 {
     j = {
@@ -241,7 +329,12 @@ void to_json(json &j, const ServiceInfo &service)
         {"cpu_usage", service.cpu_usage}};
 }
 
-// 시스템 메트릭스 전체 구조 변환
+/**
+ * @brief 시스템 메트릭스 전체 구조를 JSON으로 변환
+ *
+ * @param j 변환된 정보가 저장될 JSON 객체
+ * @param metrics 변환할 시스템 메트릭스 구조체
+ */
 void to_json(json &j, const SystemMetrics &metrics)
 {
     j = {
@@ -258,6 +351,14 @@ void to_json(json &j, const SystemMetrics &metrics)
         {"services", metrics.services}};
 }
 
+/**
+ * @brief 시스템 메트릭스를 JSON 문자열로 변환
+ *
+ * 시스템 메트릭스 구조체를 받아 JSON 형식의 문자열로 직렬화합니다.
+ *
+ * @param metrics 변환할 시스템 메트릭스 구조체
+ * @return 시스템 메트릭스 정보가 담긴 JSON 문자열
+ */
 string SystemMetricsUtil::toJson(const SystemMetrics &metrics)
 {
     json j;

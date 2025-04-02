@@ -1,3 +1,10 @@
+/**
+ * @file logger.cpp
+ * @brief Logger 클래스 구현 파일
+ * @details 시스템 로깅을 위한 Logger 클래스의 구현을 담고 있습니다.
+ * @author 시스템 개발팀
+ */
+
 #include "log/logger.h"
 #include <filesystem>
 #include <iostream>
@@ -6,8 +13,22 @@
 
 using namespace std;
 namespace fs = filesystem;
+
+/**
+ * @brief Logger 클래스의 정적 로거 인스턴스
+ * @details spdlog 라이브러리를 사용한 로거 인스턴스로, 시스템 전반에서 로깅에 사용됩니다.
+ */
 shared_ptr<spdlog::logger> Logger::s_logger;
 
+/**
+ * @brief 로거 초기화 함수
+ * @details 로깅 시스템을 초기화합니다. 다음 작업을 수행합니다:
+ *          - 현재 날짜 기반의 로그 파일명 생성
+ *          - 로그 디렉토리 확인 및 생성
+ *          - 파일 기반 싱크 설정
+ *          - 로거 레벨 설정
+ * @throws spdlog::spdlog_ex 로거 초기화 실패 시 예외 발생
+ */
 void Logger::init()
 {
     try

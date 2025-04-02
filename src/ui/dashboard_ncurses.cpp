@@ -1,3 +1,9 @@
+/**
+ * @file dashboard_ncurses.cpp
+ * @brief ncurses 기반 시스템 모니터링 대시보드 구현
+ * @author 시스템 모니터링 팀
+ */
+
 #include "ui/dashboard_ncurses.h"
 #include "collectors/cpu_collector.h"
 #include "collectors/memory_collector.h"
@@ -16,6 +22,11 @@
 #include <term.h>
 #include "log/logger.h"
 
+/**
+ * @brief DashboardNcurses 클래스의 생성자
+ * 
+ * 멤버 변수들을 초기화합니다.
+ */
 DashboardNcurses::DashboardNcurses()
 {
     // 생성자에서 멤버 변수 초기화
@@ -26,12 +37,22 @@ DashboardNcurses::DashboardNcurses()
     sort_by = 0;
 }
 
+/**
+ * @brief DashboardNcurses 클래스의 소멸자
+ * 
+ * ncurses 환경을 정리하고 종료합니다.
+ */
 DashboardNcurses::~DashboardNcurses()
 {
     LOG_INFO("END NCURSES");
     cleanup();
 }
 
+/**
+ * @brief ncurses 환경을 초기화합니다.
+ * 
+ * 터미널 설정, 색상, 로케일 등의 기본 환경을 설정합니다.
+ */
 void DashboardNcurses::init()
 {
     LOG_INFO("INIT NCURSES");
@@ -68,12 +89,20 @@ void DashboardNcurses::init()
     LOG_INFO("INIT PAIR");
 }
 
+/**
+ * @brief 화면을 지웁니다.
+ */
 void DashboardNcurses::clearScreen()
 {
     LOG_INFO("CLEAR SCREEN");
     clear();
 }
 
+/**
+ * @brief 시스템 모니터링 정보를 업데이트하고 화면에 표시합니다.
+ * 
+ * CPU, 메모리, 디스크, 네트워크 정보를 수집하고 화면에 표시합니다.
+ */
 void DashboardNcurses::updateMonitor()
 {
     LOG_INFO("UPDATE MONITOR");
@@ -182,6 +211,11 @@ void DashboardNcurses::updateMonitor()
     LOG_INFO("END UPDATE MONITOR");
 }
 
+/**
+ * @brief 시스템 기본 정보를 업데이트하고 화면에 표시합니다.
+ * 
+ * 호스트명, OS 정보, 커널 버전, 가동 시간 등을 화면에 표시합니다.
+ */
 void DashboardNcurses::updateSystemInfo()
 {
     LOG_INFO("UPDATE SYSTEM INFO");
@@ -214,6 +248,12 @@ void DashboardNcurses::updateSystemInfo()
     LOG_INFO("END UPDATE SYSTEM INFO");
 }
 
+/**
+ * @brief 프로세스 정보를 업데이트하고 화면에 표시합니다.
+ * 
+ * 실행 중인 프로세스 목록을 수집하고 페이지별로 표시합니다.
+ * 정렬 기준에 따라 프로세스를 정렬하여 표시합니다.
+ */
 void DashboardNcurses::updateProcesses()
 {
     LOG_INFO("UPDATE PROCESSES");
@@ -316,6 +356,11 @@ void DashboardNcurses::updateProcesses()
     LOG_INFO("END UPDATE PROCESSES");
 }
 
+/**
+ * @brief 도커 컨테이너 정보를 업데이트하고 화면에 표시합니다.
+ * 
+ * 실행 중인 도커 컨테이너 목록과 상세 정보를 화면에 표시합니다.
+ */
 void DashboardNcurses::updateDocker()
 {
     LOG_INFO("UPDATE DOCKER");
@@ -352,6 +397,12 @@ void DashboardNcurses::updateDocker()
     LOG_INFO("END UPDATE DOCKER");
 }
 
+/**
+ * @brief 전체 화면을 업데이트합니다.
+ * 
+ * 현재 선택된 뷰에 따라 적절한 정보를 화면에 표시합니다.
+ * 시간 정보와 안내 메시지도 함께 표시합니다.
+ */
 void DashboardNcurses::update()
 {
     LOG_INFO("UPDATE");
@@ -416,6 +467,17 @@ void DashboardNcurses::update()
     LOG_INFO("END UPDATE");
 }
 
+/**
+ * @brief 사용자 입력을 처리합니다.
+ * 
+ * 키보드 입력에 따라 다양한 동작을 수행합니다:
+ * - q/Q: 프로그램 종료
+ * - m/M: 모니터링 화면으로 전환
+ * - i/I: 시스템 정보 화면으로 전환
+ * - p/P: 프로세스 정보 화면으로 전환
+ * - d/D: 도커 컨테이너 정보 화면으로 전환
+ * - 화살표 키: 페이지 이동 및 정렬 변경
+ */
 void DashboardNcurses::handleInput()
 {
     LOG_INFO("HANDLE INPUT");
@@ -482,6 +544,11 @@ void DashboardNcurses::handleInput()
     LOG_INFO("END HANDLE INPUT");
 }
 
+/**
+ * @brief ncurses 환경을 정리합니다.
+ * 
+ * 터미널 설정을 원래대로 복원하고 ncurses를 종료합니다.
+ */
 void DashboardNcurses::cleanup()
 {
     LOG_INFO("CLEANUP");
@@ -506,6 +573,12 @@ void DashboardNcurses::cleanup()
     LOG_INFO("END CLEANUP");
 }
 
+/**
+ * @brief 구분선을 생성하여 반환합니다.
+ * 
+ * @param title 구분선 중앙에 표시할 제목 (선택 사항)
+ * @return std::string 생성된 구분선 문자열
+ */
 std::string DashboardNcurses::getDivider(const std::string &title)
 {
     LOG_INFO("GET DIVIDER");

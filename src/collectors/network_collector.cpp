@@ -1,3 +1,9 @@
+/**
+ * @file network_collector.cpp
+ * @brief 시스템의 네트워크 인터페이스 정보를 수집하는 클래스 구현
+ * @details 네트워크 인터페이스의 트래픽 통계, IP 주소, MAC 주소, 상태, 속도, MTU 등의 정보를 수집합니다.
+ */
+
 #include "collectors/network_collector.h"
 #include "models/network_interface.h"
 #include <fstream>
@@ -13,8 +19,18 @@
 
 using namespace std;
 
+/**
+ * @brief NetworkCollector 클래스의 생성자
+ * @details 마지막 수집 시간을 현재 시간으로 초기화합니다.
+ */
 NetworkCollector::NetworkCollector() : last_collect_time(std::chrono::steady_clock::now()) {}
 
+/**
+ * @brief 시스템의 모든 네트워크 인터페이스 정보를 수집합니다.
+ * @details /proc/net/dev 파일을 읽어 각 인터페이스의 트래픽 통계를 수집하고,
+ *          시스템 호출을 통해 IP 주소, MAC 주소, 상태, 속도, MTU 등의 추가 정보를 얻습니다.
+ * @throw runtime_error 소켓 생성이나 /proc/net/dev 파일 열기에 실패한 경우
+ */
 void NetworkCollector::collect()
 {
     // 현재 시간 측정으로 정확한 바이트/초 계산
@@ -140,6 +156,12 @@ void NetworkCollector::collect()
     close(sock);
 }
 
+/**
+ * @brief 지정된 네트워크 인터페이스의 IP 주소를 반환합니다.
+ * @param sock 시스템 호출에 사용할 소켓 디스크립터
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 IP 주소 (문자열), 할당된 IP가 없거나 오류 시 빈 문자열 반환
+ */
 string NetworkCollector::getIPAddress(int sock, const string &if_name)
 {
     struct ifreq ifr;
@@ -154,6 +176,11 @@ string NetworkCollector::getIPAddress(int sock, const string &if_name)
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
+/**
+ * @brief 지정된 네트워크 인터페이스의 MAC 주소를 반환합니다.
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 MAC 주소 (문자열), 오류 시 빈 문자열 반환
+ */
 string NetworkCollector::getMACAddress(const string &if_name)
 {
     string mac_path = "/sys/class/net/" + if_name + "/address";
@@ -169,6 +196,11 @@ string NetworkCollector::getMACAddress(const string &if_name)
     return mac;
 }
 
+/**
+ * @brief 지정된 네트워크 인터페이스의 상태를 반환합니다.
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 상태 (문자열, 일반적으로 "up" 또는 "down"), 오류 시 "unknown" 반환
+ */
 string NetworkCollector::getInterfaceStatus(const string &if_name)
 {
     string operstate_path = "/sys/class/net/" + if_name + "/operstate";
@@ -184,6 +216,11 @@ string NetworkCollector::getInterfaceStatus(const string &if_name)
     return status;
 }
 
+/**
+ * @brief 지정된 네트워크 인터페이스의 속도를 반환합니다.
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 속도 (Mbps), 오류 시 0 반환
+ */
 uint64_t NetworkCollector::getInterfaceSpeed(const string &if_name)
 {
     string speed_path = "/sys/class/net/" + if_name + "/speed";
@@ -204,6 +241,12 @@ uint64_t NetworkCollector::getInterfaceSpeed(const string &if_name)
     return static_cast<uint64_t>(temp_speed);
 }
 
+/**
+ * @brief 지정된 네트워크 인터페이스의 MTU(Maximum Transmission Unit)를 반환합니다.
+ * @param sock 시스템 호출에 사용할 소켓 디스크립터
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 MTU 값, 오류 시 0 반환
+ */
 int NetworkCollector::getInterfaceMTU(int sock, const string &if_name)
 {
     struct ifreq ifr;
@@ -217,11 +260,20 @@ int NetworkCollector::getInterfaceMTU(int sock, const string &if_name)
     return ifr.ifr_mtu;
 }
 
+/**
+ * @brief 수집된 모든 네트워크 인터페이스 정보를 맵 형태로 반환합니다.
+ * @return 인터페이스 이름을 키로, NetworkInterface 객체를 값으로 하는 맵
+ */
 map<string, NetworkInterface> NetworkCollector::getInterfaces() const
 {
     return interfaces;
 }
 
+/**
+ * @brief 수집된 모든 네트워크 인터페이스 정보를 벡터 형태로 반환합니다.
+ * @details 내부 맵에 저장된 인터페이스 정보를 벡터로 변환하여 반환합니다.
+ * @return NetworkInterface 객체들의 벡터
+ */
 vector<NetworkInterface> NetworkCollector::getInterfacesToVector() const
 {
     vector<NetworkInterface> result;

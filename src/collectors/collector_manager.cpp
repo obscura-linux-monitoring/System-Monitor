@@ -5,16 +5,32 @@
 
 using namespace std;
 
+/**
+ * @brief CollectorManager 생성자
+ *
+ * @param systemKey 시스템 식별을 위한 고유 키 값
+ * @param queueSize 수집된 데이터를 저장할 큐의 최대 크기 (기본값: 50)
+ */
 CollectorManager::CollectorManager(const string &systemKey, size_t queueSize)
     : systemKey_(systemKey), dataQueue_(queueSize), running_(false)
 {
 }
 
+/**
+ * @brief CollectorManager 소멸자
+ *
+ * 객체 소멸 시 실행 중인 모든 수집 작업을 중지합니다.
+ */
 CollectorManager::~CollectorManager()
 {
     stop();
 }
 
+/**
+ * @brief 시스템 데이터 수집 작업 시작
+ *
+ * @param intervalSeconds 데이터 수집 주기(초 단위, 기본값: 5)
+ */
 void CollectorManager::start(int intervalSeconds)
 {
     if (running_)
@@ -24,6 +40,12 @@ void CollectorManager::start(int intervalSeconds)
     collectionThread_ = thread(&CollectorManager::collectLoop, this, intervalSeconds);
 }
 
+/**
+ * @brief 시스템 데이터 수집 작업 중지
+ *
+ * 현재 실행 중인 모든 수집 작업을 안전하게 중지합니다.
+ * 쓰레드를 조인하고 남은 작업들을 마무리합니다.
+ */
 void CollectorManager::stop()
 {
     if (!running_)
@@ -47,6 +69,13 @@ void CollectorManager::stop()
     collectorTasks_.clear();
 }
 
+/**
+ * @brief 주기적인 데이터 수집 루프 실행 함수
+ *
+ * @param intervalSeconds 수집 주기(초 단위)
+ *
+ * 지정된 주기마다 데이터를 수집하고, 수집 시간을 고려하여 다음 수집 시간을 조정합니다.
+ */
 void CollectorManager::collectLoop(int intervalSeconds)
 {
     while (running_)
@@ -68,6 +97,18 @@ void CollectorManager::collectLoop(int intervalSeconds)
     }
 }
 
+/**
+ * @brief 단일 수집기의 작업을 생성하는 템플릿 함수
+ *
+ * @tparam Collector 수집기 타입
+ * @param collector 수집기 인스턴스 참조
+ * @param metrics 수집된 데이터를 저장할 메트릭 객체
+ * @param metricsMutex 메트릭 객체 접근을 동기화할 뮤텍스
+ * @return function<void()> 수집 작업 함수 객체
+ *
+ * 기본 구현은 수집만 수행하고 메트릭에 저장하지 않습니다.
+ * 구체적인 수집기 타입에 대한 특수화를 통해 구현됩니다.
+ */
 template <typename Collector>
 function<void()> CollectorManager::createCollectorTask(
     Collector &collector,
@@ -81,7 +122,16 @@ function<void()> CollectorManager::createCollectorTask(
     };
 }
 
-// CPU 수집기에 대한 특수화
+/**
+ * @brief CPU 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector CPU 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> CPU 정보 수집 작업 함수
+ *
+ * CPU 사용량을 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<CPUCollector>(
     CPUCollector &collector,
@@ -102,7 +152,16 @@ function<void()> CollectorManager::createCollectorTask<CPUCollector>(
     };
 }
 
-// 메모리 수집기에 대한 특수화
+/**
+ * @brief 메모리 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 메모리 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 메모리 정보 수집 작업 함수
+ *
+ * 메모리 사용량을 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<MemoryCollector>(
     MemoryCollector &collector,
@@ -123,7 +182,16 @@ function<void()> CollectorManager::createCollectorTask<MemoryCollector>(
     };
 }
 
-// 디스크 수집기에 대한 특수화
+/**
+ * @brief 디스크 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 디스크 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 디스크 정보 수집 작업 함수
+ *
+ * 디스크 사용량 통계를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<DiskCollector>(
     DiskCollector &collector,
@@ -144,7 +212,16 @@ function<void()> CollectorManager::createCollectorTask<DiskCollector>(
     };
 }
 
-// 네트워크 수집기에 대한 특수화
+/**
+ * @brief 네트워크 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 네트워크 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 네트워크 정보 수집 작업 함수
+ *
+ * 네트워크 인터페이스 정보를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<NetworkCollector>(
     NetworkCollector &collector,
@@ -165,7 +242,16 @@ function<void()> CollectorManager::createCollectorTask<NetworkCollector>(
     };
 }
 
-// 프로세스 수집기에 대한 특수화
+/**
+ * @brief 프로세스 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 프로세스 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 프로세스 정보 수집 작업 함수
+ *
+ * 실행 중인 프로세스 정보를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<ProcessCollector>(
     ProcessCollector &collector,
@@ -186,7 +272,16 @@ function<void()> CollectorManager::createCollectorTask<ProcessCollector>(
     };
 }
 
-// 시스템 정보 수집기에 대한 특수화
+/**
+ * @brief 시스템 정보 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 시스템 정보 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 시스템 정보 수집 작업 함수
+ *
+ * 기본 시스템 정보를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<SystemInfoCollector>(
     SystemInfoCollector &collector,
@@ -208,7 +303,16 @@ function<void()> CollectorManager::createCollectorTask<SystemInfoCollector>(
     };
 }
 
-// 도커 수집기에 대한 특수화
+/**
+ * @brief 도커 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 도커 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 도커 컨테이너 정보 수집 작업 함수
+ *
+ * 도커 컨테이너 정보를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<DockerCollector>(
     DockerCollector &collector,
@@ -229,6 +333,16 @@ function<void()> CollectorManager::createCollectorTask<DockerCollector>(
     };
 }
 
+/**
+ * @brief 서비스 수집기에 대한 특수화된 작업 생성 함수
+ *
+ * @param collector 서비스 수집기 인스턴스
+ * @param metrics 시스템 메트릭 객체
+ * @param metricsMutex 메트릭 접근 동기화를 위한 뮤텍스
+ * @return function<void()> 서비스 정보 수집 작업 함수
+ *
+ * 시스템 서비스 정보를 수집하고 메트릭 객체에 저장합니다.
+ */
 template <>
 function<void()> CollectorManager::createCollectorTask<ServiceCollector>(
     ServiceCollector &collector,
@@ -249,6 +363,13 @@ function<void()> CollectorManager::createCollectorTask<ServiceCollector>(
     };
 }
 
+/**
+ * @brief 병렬로 여러 수집기의 데이터를 동시에 수집하는 함수
+ *
+ * 모든 수집기를 비동기적으로 실행하여 동시에 데이터를 수집하고,
+ * 결과를 하나의 메트릭 객체에 취합합니다.
+ * 수집이 완료되면 데이터 큐에 메트릭을 추가합니다.
+ */
 void CollectorManager::collectDataParallel()
 {
     // 시작 시간 기록
@@ -312,6 +433,13 @@ void CollectorManager::collectDataParallel()
          << ", 소요 시간: " << collectDuration.count() << "ms" << endl;
 }
 
+/**
+ * @brief 현재 시간 정보를 문자열로 생성하는 함수
+ *
+ * @return string 현재 시간 문자열
+ *
+ * UTC 시간을 ISO 8601 형식(YYYY-MM-DDThh:mm:ssZ)으로 반환합니다.
+ */
 string CollectorManager::getCurrentTime()
 {
     auto now = chrono::system_clock::now();

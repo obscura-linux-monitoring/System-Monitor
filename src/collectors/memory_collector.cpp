@@ -1,9 +1,18 @@
+/**
+ * @file memory_collector.cpp
+ * @brief 시스템 메모리 정보를 수집하는 MemoryCollector 클래스의 구현
+ */
 #include "collectors/memory_collector.h"
 #include <fstream>
 #include <sstream>
 
 using namespace std;
 
+/**
+ * @brief 메모리 정보 구조체를 초기화합니다.
+ * 
+ * 모든 메모리 관련 필드를 0으로 설정합니다.
+ */
 void MemoryCollector::clear()
 {
     memoryInfo.total = 0;
@@ -18,6 +27,14 @@ void MemoryCollector::clear()
     memoryInfo.usage_percent = 0;
 }
 
+/**
+ * @brief 시스템의 메모리 정보를 수집합니다.
+ * 
+ * /proc/meminfo 파일에서 메모리 정보를 읽어와 MemoryInfo 구조체에 저장합니다.
+ * 메모리 사용량, 총 메모리, 사용 가능한 메모리 등의 정보를 수집하고 계산합니다.
+ * 
+ * @throw runtime_error /proc/meminfo 파일을 열 수 없을 경우 예외를 발생시킵니다.
+ */
 void MemoryCollector::collect()
 {
     ifstream meminfo("/proc/meminfo");
@@ -80,6 +97,11 @@ void MemoryCollector::collect()
     }
 }
 
+/**
+ * @brief 수집된 메모리 정보를 반환합니다.
+ * 
+ * @return MemoryInfo 수집된 시스템 메모리 정보를 담고 있는 구조체
+ */
 MemoryInfo MemoryCollector::getMemoryInfo() const
 {
     return memoryInfo;

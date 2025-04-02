@@ -1,3 +1,9 @@
+/**
+ * @file cpu_collector.cpp
+ * @brief CPU 정보 수집 모듈 구현 파일
+ * @author System Monitor Team
+ */
+
 #include "collectors/cpu_collector.h"
 #include <string.h>
 #include <unistd.h>
@@ -10,12 +16,23 @@ using namespace std;
 
 namespace
 {
+    /**
+     * @brief 센서 초기화 상태를 나타내는 변수
+     * @details libsensors 라이브러리의 초기화 상태를 추적합니다.
+     */
     bool sensors_initialized = false;
 }
 
-// 캐시 메커니즘 상수 추가
+/**
+ * @brief 온도 데이터 캐싱을 위한 시간 제한 상수(밀리초)
+ * @details CPU 온도 정보 갱신 주기를 제한하기 위한 값입니다.
+ */
 static constexpr unsigned long CACHE_TIMEOUT_MS = 1000; // 1초
 
+/**
+ * @brief CPUCollector 클래스 생성자
+ * @details CPU 정보 관련 필드를 초기화하고 기본 CPU 정보를 수집합니다.
+ */
 CPUCollector::CPUCollector()
 {
     cpuInfo.model = "";
@@ -35,18 +52,24 @@ CPUCollector::CPUCollector()
     cpuInfo.cache_size = 0;
     cpuInfo.clock_speed = 0.0f;
     cpuInfo.vendor = "";
-    
+
     // 캐시 시간 초기화
     last_temp_read_time = 0;
-    
+
     collectCpuInfo();
 }
 
+/**
+ * @brief CPU 하드웨어 정보를 수집하는 메서드
+ * @details /proc/cpuinfo 파일과 시스템 호출을 통해 CPU 모델, 아키텍처,
+ *          코어 수, 하이퍼스레딩 상태, 지원 기능 등의 정보를 수집합니다.
+ */
 void CPUCollector::collectCpuInfo()
 {
     // 먼저 uname을 사용하여 커널이 인식하는 현재 아키텍처 확인
     struct utsname sysInfo;
-    if (uname(&sysInfo) == 0) {
+    if (uname(&sysInfo) == 0)
+    {
         string machineName = sysInfo.machine;
         cpuInfo.architecture = machineName; // 기본값으로 uname의 결과 사용
     }
@@ -62,7 +85,7 @@ void CPUCollector::collectCpuInfo()
     if (fp != NULL)
     {
         int siblings = 0, cores = 0;
-        
+
         while (fgets(cpuinfo_line, sizeof(cpuinfo_line), fp))
         {
             if (strstr(cpuinfo_line, "siblings"))
@@ -81,20 +104,40 @@ void CPUCollector::collectCpuInfo()
                     // ARM 제조사 코드
                     switch (implementer)
                     {
-                        case 0x41: cpuInfo.vendor = "ARM"; break;
-                        case 0x42: cpuInfo.vendor = "Broadcom"; break;
-                        case 0x43: cpuInfo.vendor = "Cavium"; break;
-                        case 0x44: cpuInfo.vendor = "DEC"; break;
-                        case 0x4e: cpuInfo.vendor = "Nvidia"; break;
-                        case 0x51: cpuInfo.vendor = "Qualcomm"; break;
-                        case 0x53: cpuInfo.vendor = "Samsung"; break;
-                        case 0x56: cpuInfo.vendor = "Marvell"; break;
-                        case 0x69: cpuInfo.vendor = "Intel"; break;
-                        default: cpuInfo.vendor = "Unknown ARM vendor"; break;
+                    case 0x41:
+                        cpuInfo.vendor = "ARM";
+                        break;
+                    case 0x42:
+                        cpuInfo.vendor = "Broadcom";
+                        break;
+                    case 0x43:
+                        cpuInfo.vendor = "Cavium";
+                        break;
+                    case 0x44:
+                        cpuInfo.vendor = "DEC";
+                        break;
+                    case 0x4e:
+                        cpuInfo.vendor = "Nvidia";
+                        break;
+                    case 0x51:
+                        cpuInfo.vendor = "Qualcomm";
+                        break;
+                    case 0x53:
+                        cpuInfo.vendor = "Samsung";
+                        break;
+                    case 0x56:
+                        cpuInfo.vendor = "Marvell";
+                        break;
+                    case 0x69:
+                        cpuInfo.vendor = "Intel";
+                        break;
+                    default:
+                        cpuInfo.vendor = "Unknown ARM vendor";
+                        break;
                     }
                 }
             }
-            
+
             if (strstr(cpuinfo_line, "model name") || strstr(cpuinfo_line, "Processor"))
             {
                 char model[256];
@@ -102,16 +145,16 @@ void CPUCollector::collectCpuInfo()
                     sscanf(cpuinfo_line, "model name\t: %[^\n]", model);
                 else
                     sscanf(cpuinfo_line, "Processor\t: %[^\n]", model);
-                    
+
                 cpuInfo.model = model;
             }
-            
+
             // RISC-V 확인
             if (strstr(cpuinfo_line, "hart"))
             {
                 cpuInfo.vendor = "RISC-V";
             }
-            
+
             // MIPS 정보 확인
             if (strstr(cpuinfo_line, "cpu model"))
             {
@@ -119,31 +162,31 @@ void CPUCollector::collectCpuInfo()
                 sscanf(cpuinfo_line, "cpu model\t: %[^\n]", model);
                 cpuInfo.model = model;
             }
-            
+
             // 플래그 확인 (x86 계열)
             if (strstr(cpuinfo_line, "flags"))
             {
                 char flags[1024];
                 sscanf(cpuinfo_line, "flags\t: %[^\n]", flags);
                 string flagsStr(flags);
-                
+
                 cpuInfo.has_vmx = (flagsStr.find("vmx") != string::npos);
                 cpuInfo.has_svm = (flagsStr.find("svm") != string::npos);
                 cpuInfo.has_avx = (flagsStr.find("avx") != string::npos);
                 cpuInfo.has_avx2 = (flagsStr.find("avx2") != string::npos);
             }
-            
+
             // ARM 기능 확인
             if (strstr(cpuinfo_line, "Features"))
             {
                 char features[1024];
                 sscanf(cpuinfo_line, "Features\t: %[^\n]", features);
                 string featuresStr(features);
-                
+
                 cpuInfo.has_neon = (featuresStr.find("neon") != string::npos);
                 cpuInfo.has_sve = (featuresStr.find("sve") != string::npos);
             }
-            
+
             if (strstr(cpuinfo_line, "cache size"))
             {
                 int cache;
@@ -179,6 +222,13 @@ void CPUCollector::collectCpuInfo()
     }
 }
 
+/**
+ * @brief CPU 사용량과 온도 정보를 수집하는 메서드
+ * @details /proc/stat 파일을 분석하여 CPU 및 코어별 사용률을 계산하고,
+ *          libsensors를 통해 CPU 온도를 측정합니다.
+ *          지정된 캐시 주기에 따라 온도 정보를 갱신합니다.
+ * @see Collector::collect()
+ */
 void CPUCollector::collect()
 {
     // sensors 초기화 (처음 한 번만)
@@ -210,8 +260,8 @@ void CPUCollector::collect()
     // 각 코어별 사용량 읽기
     vector<stJiffies> newCoreJiffies;
     newCoreJiffies.reserve(prevCoreJiffies.size()); // 메모리 재할당 방지
-    int core_id = 0; // 코어 ID 추적
-    
+    int core_id = 0;                                // 코어 ID 추적
+
     while (fgets(line, sizeof(line), pStat))
     {
         stJiffies coreJiffies;
@@ -220,15 +270,18 @@ void CPUCollector::collect()
                    &coreJiffies.system, &coreJiffies.idle) == 4)
         {
             newCoreJiffies.push_back(coreJiffies);
-            
+
             // cores 벡터 크기 조정 (필요시)
-            if (core_id >= static_cast<int>(cpuInfo.cores.size())) {
+            if (core_id >= static_cast<int>(cpuInfo.cores.size()))
+            {
                 CpuCoreInfo newCore;
                 newCore.id = core_id;
                 newCore.usage = 0.0f;
                 newCore.temperature = 0.0f;
                 cpuInfo.cores.push_back(newCore);
-            } else {
+            }
+            else
+            {
                 // ID 값 설정
                 cpuInfo.cores[core_id].id = core_id;
             }
@@ -289,12 +342,12 @@ void CPUCollector::collect()
 
     // 온도 데이터 캐싱 구현
     unsigned long current_time = static_cast<unsigned long>(time(NULL) * 1000);
-    
+
     // sensors가 초기화되지 않았거나 캐시 시간이 지났을 때만 온도 데이터 갱신
     if (sensors_initialized && (current_time - last_temp_read_time > CACHE_TIMEOUT_MS))
     {
         last_temp_read_time = current_time;
-        
+
         const sensors_chip_name *chip;
         const sensors_feature *feature;
         const sensors_subfeature *subfeature;
@@ -353,7 +406,7 @@ void CPUCollector::collect()
         if (!cpuInfo.cores.empty())
         {
             double total = 0.0;
-            for (const CpuCoreInfo& temp : cpuInfo.cores) // 참조로 변경하여 복사 방지
+            for (const CpuCoreInfo &temp : cpuInfo.cores) // 참조로 변경하여 복사 방지
             {
                 total += temp.temperature;
             }
@@ -362,11 +415,19 @@ void CPUCollector::collect()
     }
 }
 
+/**
+ * @brief 수집된 CPU 정보를 반환하는 메서드
+ * @return CPU 정보 구조체 (CpuInfo)
+ */
 const CpuInfo CPUCollector::getCpuInfo() const
 {
     return cpuInfo;
 }
 
+/**
+ * @brief CPUCollector 클래스 소멸자
+ * @details libsensors 라이브러리 자원을 정리합니다.
+ */
 CPUCollector::~CPUCollector()
 {
     if (sensors_initialized)
