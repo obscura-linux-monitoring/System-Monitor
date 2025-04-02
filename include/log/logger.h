@@ -28,6 +28,17 @@ public:
     static void init();
 
     /**
+     * @brief 로거 종료 함수
+     * @details 로거를 종료하고 모든 버퍼를 비우고 파일을 닫습니다.
+     */
+    static void shutdown() {
+        if (s_logger) {
+            s_logger->flush();
+            spdlog::shutdown();
+        }
+    }
+
+    /**
      * @brief 로거 인스턴스를 반환하는 정적 메서드
      * @return 공유 포인터로 래핑된 spdlog 로거 인스턴스
      */

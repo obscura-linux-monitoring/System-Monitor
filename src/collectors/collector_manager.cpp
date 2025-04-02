@@ -6,13 +6,19 @@
 using namespace std;
 
 /**
+ * @brief 프로그램램 실행 상태를 제어하는 전역 변수
+ * @details 모든 스레드에서 안전하게 접근할 수 있는 원자적 변수
+ */
+extern atomic<bool> running; // extern으로 선언 (참조 기호 & 제거)
+
+/**
  * @brief CollectorManager 생성자
  *
  * @param systemKey 시스템 식별을 위한 고유 키 값
  * @param queueSize 수집된 데이터를 저장할 큐의 최대 크기 (기본값: 50)
  */
 CollectorManager::CollectorManager(const string &systemKey, size_t queueSize)
-    : systemKey_(systemKey), dataQueue_(queueSize), running_(false)
+    : systemKey_(systemKey), dataQueue_(queueSize)
 {
 }
 
@@ -33,10 +39,6 @@ CollectorManager::~CollectorManager()
  */
 void CollectorManager::start(int intervalSeconds)
 {
-    if (running_)
-        return;
-
-    running_ = true;
     collectionThread_ = thread(&CollectorManager::collectLoop, this, intervalSeconds);
 }
 
@@ -48,11 +50,6 @@ void CollectorManager::start(int intervalSeconds)
  */
 void CollectorManager::stop()
 {
-    if (!running_)
-        return;
-
-    running_ = false;
-
     if (collectionThread_.joinable())
     {
         collectionThread_.join();
@@ -78,7 +75,7 @@ void CollectorManager::stop()
  */
 void CollectorManager::collectLoop(int intervalSeconds)
 {
-    while (running_)
+    while (running.load())
     {
         auto startTime = chrono::steady_clock::now();
 

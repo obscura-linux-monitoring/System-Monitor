@@ -62,6 +62,7 @@ int main(int argc, char **argv)
 {
     /** @brief 로깅 시스템 초기화 */
     Logger::init();
+    LOG_INFO("클라이언트 시작");
 
     /** @brief 명령행 인수 로깅 */
     string args;
@@ -280,6 +281,9 @@ int main(int argc, char **argv)
     {
         dashboard->cleanup();
     }
+
+    LOG_INFO("클라이언트 종료");
+    Logger::shutdown();
 
     return 0;
 }

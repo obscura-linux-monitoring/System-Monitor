@@ -120,11 +120,6 @@ private:
     ThreadSafeQueue<SystemMetrics> dataQueue_;
 
     /**
-     * @brief 수집 작업 실행 상태 플래그
-     */
-    atomic<bool> running_;
-
-    /**
      * @brief 주 수집 작업 쓰레드
      */
     thread collectionThread_;
