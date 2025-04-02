@@ -56,29 +56,34 @@ public:
     }
 
     /**
-     * @brief 큐에서 아이템 가져오기 (소비자용)
+     * @brief 큐에서 아이템을 가져오려고 시도 (소비자용)
      *
-     * 큐가 비었을 경우 아이템이 추가될 때까지 대기한다
-     * 종료 신호가 발생하고 큐가 비어있는 경우 작업을 중단한다
+     * 큐가 비었을 경우 지정된 타임아웃 동안 대기하고, 
+     * 시간 내에 아이템이 들어오지 않으면 false를 반환합니다.
      *
      * @param item 가져온 아이템을 저장할 참조 변수
-     * @return bool 성공 여부 (true: 성공, false: 종료 신호 수신됨)
+     * @param timeout 대기할 최대 시간
+     * @return bool 성공 여부 (true: 성공, false: 타임아웃 또는 종료 신호)
      */
-    bool pop(T &item)
+    template <typename Duration>
+    bool try_pop(T& item, Duration timeout)
     {
         unique_lock<mutex> lock(mutex_);
 
-        // 큐가 비었을 때 대기
-        not_empty_.wait(lock, [this]
-                        { return !queue_.empty() || should_terminate_; });
+        // 지정된 시간 동안 데이터가 들어오기를 기다림
+        bool success = not_empty_.wait_for(lock, timeout, [this]
+                          { return !queue_.empty() || should_terminate_; });
 
-        if (should_terminate_ && queue_.empty())
+        if (!success || should_terminate_)
+            return false;
+
+        if (queue_.empty())
             return false;
 
         item = move(queue_.front());
         queue_.pop();
 
-        // 생산자에게 공간이 있음을 알림
+        // 생산자에게 공간이 생겼음을 알림
         lock.unlock();
         not_full_.notify_one();
 

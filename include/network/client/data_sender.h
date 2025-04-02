@@ -4,6 +4,7 @@
 #include "models/system_metrics.h"
 #include "common/thread_safe_queue.h"
 #include "utils/system_metrics_utils.h"
+#include "models/command_result.h"
 
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -11,6 +12,7 @@
 #include <atomic>
 #include <chrono>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -86,6 +88,8 @@ private:
 
     ServerInfo serverInfo_;                     ///< 서버 연결 정보
     ThreadSafeQueue<SystemMetrics> &dataQueue_; ///< 전송할 메트릭 데이터 큐
+    ThreadSafeQueue<CommandResult> commandResultQueue_; ///< 커맨드 처리 결과 큐
+    ThreadSafeQueue<CommandResult> commandQueue_; ///< 처리할 커맨드 작업 큐
     string user_id_;                            ///< 사용자 식별자
 
     WebsocketClient client_;           ///< WebSocket 클라이언트 인스턴스
@@ -93,8 +97,13 @@ private:
     atomic<bool> isConnected_;         ///< 서버 연결 상태 플래그
     atomic<bool> running_;             ///< 데이터 전송 실행 상태 플래그
 
-    thread clientThread_; ///< WebSocket 통신 스레드
-    thread senderThread_; ///< 데이터 송신 스레드
+    thread clientThread_;  ///< WebSocket 통신 스레드
+    thread senderThread_;  ///< 데이터 송신 스레드
+    thread commandThread_; ///< 커맨드 처리 스레드
+
+    // 워커 스레드 풀 관련 멤버
+    vector<thread> workerThreads_; ///< 커맨드 처리 워커 스레드 풀
+    const int numWorkers_ = 4;     ///< 워커 스레드 개수
 
     /**
      * @brief 지정된 간격으로 메트릭 데이터를 지속적으로 전송하는 루프
@@ -118,4 +127,24 @@ private:
      * @param msg 수신된 메시지 포인터
      */
     void handleMessage(WebsocketHandle hdl, WebsocketClient::message_ptr msg);
+
+    /**
+     * @brief 커맨드 처리 쓰레드 함수
+     */
+    void commandProcessor();
+
+    /**
+     * @brief 커맨드를 처리하는 함수
+     * 
+     * @param command 처리할 커맨드
+     * @return 처리 결과
+     */
+    CommandResult processCommand(const CommandResult& command);
+
+    /**
+     * @brief 워커 스레드 함수
+     * 
+     * 커맨드 큐에서 작업을 가져와 처리하는 함수
+     */
+    void workerThread();
 };
