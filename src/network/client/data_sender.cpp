@@ -239,7 +239,6 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
     {
         LOG_INFO(logMessage);
     }
-    LOG_INFO("데이터 : \n" + data);
 
     return !ec;
 }
