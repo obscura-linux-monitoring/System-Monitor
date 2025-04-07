@@ -58,6 +58,8 @@ file(GLOB_RECURSE SOURCES
     "${PROJECT_SOURCE_DIR}/src/network/${EXECUTABLE_NAME}/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/network/common/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/log/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/commands/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/operations/*.cpp"
 )
 
 # 실행 파일 생성 - 이름을 ${EXECUTABLE_NAME}로 변경

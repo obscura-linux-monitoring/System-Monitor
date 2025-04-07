@@ -1,0 +1,35 @@
+#pragma once
+
+#include "models/command_result.h"
+
+using namespace std;
+
+namespace operations
+{
+
+    /**
+     * @brief 시스템 제어 작업 클래스
+     *
+     * PC 종료, 재시작 등 시스템 제어 작업 모음
+     */
+    class SystemControl
+    {
+    public:
+        /**
+         * @brief PC 종료 함수
+         *
+         * @param delaySeconds 종료 전 대기 시간(초)
+         * @return CommandResult 작업 실행 결과
+         */
+        static CommandResult shutdownPC(int delaySeconds = 0);
+
+        /**
+         * @brief PC 재시작 함수
+         *
+         * @param delaySeconds 재시작 전 대기 시간(초)
+         * @return CommandResult 작업 실행 결과
+         */
+        static CommandResult restartPC(int delaySeconds = 0);
+    };
+
+} // namespace operations
