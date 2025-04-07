@@ -43,5 +43,11 @@ CommandResult CommandTypeCExecutor::execute(const CommandResult &command)
         result.resultMessage = "유효하지 않은 명령어 타입";
     }
 
+    result.commandID = command.commandID;
+    result.nodeID = command.nodeID;
+    result.commandType = command.commandType;
+    result.commandStatus = command.commandStatus;
+    result.target = command.target;
+
     return result;
 }
