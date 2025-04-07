@@ -18,16 +18,18 @@ namespace operations
         /**
          * @brief 프로그램 종료 함수
          *
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult shutdown();
+        static CommandResult shutdown(CommandResult &result);
 
         /**
          * @brief 프로그램 재시작 함수
          *
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult restart();
+        static CommandResult restart(CommandResult &result);
     };
 
 } // namespace operations

@@ -19,18 +19,20 @@ namespace operations
         /**
          * @brief 프로세스 정지 함수
          *
-         * @param processName 정지할 프로세스 이름 또는 PID
+         * @param processName 정지할 프로세스 PID
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult stopProcess(const string &processName);
+        static CommandResult stopProcess(int pid, CommandResult &result);
 
         /**
          * @brief 프로세스 강제 종료 함수
          *
-         * @param processName 종료할 프로세스 이름 또는 PID
+         * @param processName 종료할 프로세스 PID
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult killProcess(const string &processName);
+        static CommandResult killProcess(int pid, CommandResult &result);
     };
 
 } // namespace operations

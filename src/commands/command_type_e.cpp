@@ -23,22 +23,22 @@ CommandResult CommandTypeEExecutor::execute(const CommandResult &command)
     if (command.commandStatus == 1) // 중지
     {
         LOG_INFO("중지 명령어 실행 중: ID={}", command.commandID);
-        result = operations::DockerOperations::stopContainer(command.target);
+        result = operations::DockerOperations::stopContainer(command.target, result);
     }
     else if (command.commandStatus == 2) // 시작
     {
         LOG_INFO("시작 명령어 실행 중: ID={}", command.commandID);
-        result = operations::DockerOperations::startContainer(command.target);
+        result = operations::DockerOperations::startContainer(command.target, result);
     }
     else if (command.commandStatus == 3) // 재시작
     {
         LOG_INFO("재시작 명령어 실행 중: ID={}", command.commandID);
-        result = operations::DockerOperations::restartContainer(command.target);
+        result = operations::DockerOperations::restartContainer(command.target, result);
     }
     else if (command.commandStatus == 4) // 삭제
     {
         LOG_INFO("삭제 명령어 실행 중: ID={}", command.commandID);
-        result = operations::DockerOperations::deleteContainer(command.target);
+        result = operations::DockerOperations::deleteContainer(command.target, result);
     }
     else
     {
@@ -46,12 +46,6 @@ CommandResult CommandTypeEExecutor::execute(const CommandResult &command)
         result.resultStatus = 0;
         result.resultMessage = "유효하지 않은 명령어 타입";
     }
-
-    result.commandID = command.commandID;
-    result.nodeID = command.nodeID;
-    result.commandType = command.commandType;
-    result.commandStatus = command.commandStatus;
-    result.target = command.target;
 
     return result;
 }

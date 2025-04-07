@@ -8,13 +8,11 @@ using namespace std;
 namespace operations
 {
 
-    CommandResult ProcessControl::stopProcess(const string &processName)
+    CommandResult ProcessControl::stopProcess(int pid, CommandResult &result)
     {
-        CommandResult result;
+        LOG_INFO("프로세스 정지 작업 실행: {}", pid);
 
-        LOG_INFO("프로세스 정지 작업 실행: {}", processName);
-
-        string command = "pkill " + processName;
+        string command = "kill -15 " + to_string(pid);
 
         int exitCode = system(command.c_str());
         if (exitCode != 0)
@@ -30,13 +28,11 @@ namespace operations
         return result;
     }
 
-    CommandResult ProcessControl::killProcess(const string &processName)
+    CommandResult ProcessControl::killProcess(int pid, CommandResult &result)
     {
-        CommandResult result;
+        LOG_INFO("프로세스 강제 종료 작업 실행: {}", pid);
 
-        LOG_INFO("프로세스 강제 종료 작업 실행: {}", processName);
-
-        string command = "pkill -9 " + processName;
+        string command = "kill -9 " + to_string(pid);
 
         int exitCode = system(command.c_str());
         if (exitCode != 0)

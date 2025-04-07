@@ -19,17 +19,19 @@ namespace operations
          * @brief PC 종료 함수
          *
          * @param delaySeconds 종료 전 대기 시간(초)
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult shutdownPC(int delaySeconds = 0);
+        static CommandResult shutdownPC(int delaySeconds, CommandResult &result);
 
         /**
          * @brief PC 재시작 함수
          *
          * @param delaySeconds 재시작 전 대기 시간(초)
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult restartPC(int delaySeconds = 0);
+        static CommandResult restartPC(int delaySeconds, CommandResult &result);
     };
 
 } // namespace operations

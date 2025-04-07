@@ -8,10 +8,8 @@ using namespace std;
 namespace operations
 {
 
-    CommandResult DockerOperations::startContainer(const string &containerName)
+    CommandResult DockerOperations::startContainer(const string &containerName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("Docker 컨테이너 시작 작업 실행: {}", containerName);
 
         string command = "sudo docker start " + containerName;
@@ -30,10 +28,8 @@ namespace operations
         return result;
     }
 
-    CommandResult DockerOperations::stopContainer(const string &containerName)
+    CommandResult DockerOperations::stopContainer(const string &containerName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("Docker 컨테이너 정지 작업 실행: {}", containerName);
 
         string command = "sudo docker stop " + containerName;
@@ -52,10 +48,8 @@ namespace operations
         return result;
     }
 
-    CommandResult DockerOperations::restartContainer(const string &containerName)
+    CommandResult DockerOperations::restartContainer(const string &containerName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("Docker 컨테이너 재시작 작업 실행: {}", containerName);
 
         string command = "sudo docker restart " + containerName;
@@ -74,10 +68,8 @@ namespace operations
         return result;
     }
 
-    CommandResult DockerOperations::deleteContainer(const string &containerName)
+    CommandResult DockerOperations::deleteContainer(const string &containerName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("Docker 컨테이너 삭제 작업 실행: {}", containerName);
 
         string command = "sudo docker rm " + containerName;

@@ -20,33 +20,37 @@ namespace operations
          * @brief 서비스 시작 함수
          *
          * @param serviceName 시작할 서비스 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult startService(const string &serviceName);
+        static CommandResult startService(const string &serviceName, CommandResult &result);
 
         /**
          * @brief 서비스 정지 함수
          *
          * @param serviceName 정지할 서비스 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult stopService(const string &serviceName);
+        static CommandResult stopService(const string &serviceName, CommandResult &result);
 
         /**
          * @brief 서비스 재시작 함수
          *
          * @param serviceName 재시작할 서비스 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult restartService(const string &serviceName);
+        static CommandResult restartService(const string &serviceName, CommandResult &result);
 
         /**
          * @brief 서비스 제거 함수
          *
          * @param serviceName 제거할 서비스 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult removeService(const string &serviceName);
+        static CommandResult removeService(const string &serviceName, CommandResult &result);
 
         /**
          * @brief 데몬 재시작 함수

@@ -24,17 +24,17 @@ CommandResult CommandTypeCExecutor::execute(const CommandResult &command)
     if (command.commandStatus == 1) // 중지
     {
         LOG_INFO("중지 명령어 실행 중: ID={}", command.commandID);
-        result = operations::ServiceControl::stopService(command.target);
+        result = operations::ServiceControl::stopService(command.target, result);
     }
     else if (command.commandStatus == 2) // 재시작
     {
         LOG_INFO("재시작 명령어 실행 중: ID={}", command.commandID);
-        result = operations::ServiceControl::restartService(command.target);
+        result = operations::ServiceControl::restartService(command.target, result);
     }
     else if (command.commandStatus == 3) // 제거
     {
         LOG_INFO("제거 명령어 실행 중: ID={}", command.commandID);
-        result = operations::ServiceControl::removeService(command.target);
+        result = operations::ServiceControl::removeService(command.target, result);
     }
     else
     {
@@ -42,12 +42,6 @@ CommandResult CommandTypeCExecutor::execute(const CommandResult &command)
         result.resultStatus = 0;
         result.resultMessage = "유효하지 않은 명령어 타입";
     }
-
-    result.commandID = command.commandID;
-    result.nodeID = command.nodeID;
-    result.commandType = command.commandType;
-    result.commandStatus = command.commandStatus;
-    result.target = command.target;
 
     return result;
 }

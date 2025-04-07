@@ -7,10 +7,8 @@ using namespace std;
 namespace operations
 {
 
-    CommandResult SelfManagement::shutdown()
+    CommandResult SelfManagement::shutdown(CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("프로그램 종료 작업 실행");
 
         // 프로그램 종료 로직 구현
@@ -24,10 +22,8 @@ namespace operations
         return result;
     }
 
-    CommandResult SelfManagement::restart()
+    CommandResult SelfManagement::restart(CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("프로그램 재시작 작업 실행");
 
         // 프로그램 재시작 로직 구현

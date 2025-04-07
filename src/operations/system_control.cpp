@@ -8,10 +8,9 @@ using namespace std;
 namespace operations
 {
 
-    CommandResult SystemControl::shutdownPC(int delaySeconds)
+    CommandResult SystemControl::shutdownPC(int delaySeconds, CommandResult &command)
     {
-        CommandResult result;
-
+        CommandResult result = command;
         LOG_INFO("PC 종료 작업 실행: 지연 시간 {}초", delaySeconds);
 
         //         string command = "shutdown -h +" + to_string(delaySeconds / 60);
@@ -30,9 +29,9 @@ namespace operations
         return result;
     }
 
-    CommandResult SystemControl::restartPC(int delaySeconds)
+    CommandResult SystemControl::restartPC(int delaySeconds, CommandResult &command)
     {
-        CommandResult result;
+        CommandResult result = command;
 
         LOG_INFO("PC 재시작 작업 실행: 지연 시간 {}초", delaySeconds);
 

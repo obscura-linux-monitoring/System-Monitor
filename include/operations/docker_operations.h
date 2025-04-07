@@ -20,33 +20,37 @@ namespace operations
          * @brief Docker 컨테이너 시작 함수
          *
          * @param containerName 시작할 컨테이너 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult startContainer(const string &containerName);
+        static CommandResult startContainer(const string &containerName, CommandResult &result);
 
         /**
          * @brief Docker 컨테이너 정지 함수
          *
          * @param containerName 정지할 컨테이너 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult stopContainer(const string &containerName);
+        static CommandResult stopContainer(const string &containerName, CommandResult &result);
 
         /**
          * @brief Docker 컨테이너 재시작 함수
          *
          * @param containerName 재시작할 컨테이너 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult restartContainer(const string &containerName);
+        static CommandResult restartContainer(const string &containerName, CommandResult &result);
 
         /**
          * @brief Docker 컨테이너 삭제 함수
          *
          * @param containerName 삭제할 컨테이너 이름
+         * @param result 작업 실행 결과
          * @return CommandResult 작업 실행 결과
          */
-        static CommandResult deleteContainer(const string &containerName);
+        static CommandResult deleteContainer(const string &containerName, CommandResult &result);
     };
 
 } // namespace operations

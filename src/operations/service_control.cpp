@@ -8,11 +8,10 @@ using namespace std;
 namespace operations
 {
 
-    CommandResult ServiceControl::startService(const string &serviceName)
+    CommandResult ServiceControl::startService(const string &serviceName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("서비스 시작 작업 실행: {}", serviceName);
+
         string command = "sudo systemctl start " + serviceName;
 
         int exitCode = system(command.c_str());
@@ -29,11 +28,10 @@ namespace operations
         return result;
     }
 
-    CommandResult ServiceControl::stopService(const string &serviceName)
+    CommandResult ServiceControl::stopService(const string &serviceName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("서비스 정지 작업 실행: {}", serviceName);
+
         string command = "sudo systemctl stop " + serviceName;
 
         int exitCode = system(command.c_str());
@@ -50,10 +48,8 @@ namespace operations
         return result;
     }
 
-    CommandResult ServiceControl::restartService(const string &serviceName)
+    CommandResult ServiceControl::restartService(const string &serviceName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("서비스 재시작 작업 실행: {}", serviceName);
 
         string command = "sudo systemctl restart " + serviceName;
@@ -72,10 +68,8 @@ namespace operations
         return result;
     }
 
-    CommandResult ServiceControl::removeService(const string &serviceName)
+    CommandResult ServiceControl::removeService(const string &serviceName, CommandResult &result)
     {
-        CommandResult result;
-
         LOG_INFO("서비스 제거 작업 실행: {}", serviceName);
 
         string command = "sudo systemctl stop " + serviceName;
