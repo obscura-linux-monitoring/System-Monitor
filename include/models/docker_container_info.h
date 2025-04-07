@@ -124,13 +124,13 @@ struct DockerContainerInfo
     /// @brief 컨테이너 환경 변수 목록
     vector<DockerContainerEnv> container_env;
     /// @brief CPU 사용률 (%)
-    float cpu_usage;
+    double cpu_usage;
     /// @brief 메모리 사용량 (바이트)
     uint64_t memory_usage;
     /// @brief 메모리 제한 (바이트)
     uint64_t memory_limit;
     /// @brief 메모리 사용률 (%)
-    float memory_percent;
+    double memory_percent;
     /// @brief 실행 명령어
     string command;
     /// @brief 네트워크 수신 데이터 (바이트)

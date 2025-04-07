@@ -17,7 +17,7 @@
 /**
  * @class DockerCollector
  * @brief Docker 컨테이너 정보 수집을 담당하는 클래스
- * 
+ *
  * Docker API를 사용하여 실행 중인 모든 컨테이너의 상세 정보와 리소스 사용량을 수집합니다.
  * 성능 최적화를 위해 curl 핸들 풀링, 비동기 처리, 결과 캐싱 기법을 사용합니다.
  * Docker 유닉스 소켓(/var/run/docker.sock)에 연결하여 정보를 수집합니다.
@@ -28,7 +28,7 @@ using json = nlohmann::json;
 
 /**
  * @brief Docker API로부터 데이터를 수신하기 위한 콜백 함수
- * 
+ *
  * @param contents 수신된 데이터
  * @param size 각 데이터 항목의 크기
  * @param nmemb 데이터 항목의 개수
@@ -39,7 +39,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 
 /**
  * @brief DockerCollector 클래스의 생성자
- * 
+ *
  * CURL을 글로벌하게 초기화하고 curl 핸들 풀을 설정합니다.
  */
 DockerCollector::DockerCollector()
@@ -53,7 +53,7 @@ DockerCollector::DockerCollector()
 
 /**
  * @brief DockerCollector 클래스의 소멸자
- * 
+ *
  * 모든 curl 핸들을 정리하고 CURL 글로벌 리소스를 해제합니다.
  */
 DockerCollector::~DockerCollector()
@@ -71,9 +71,9 @@ DockerCollector::~DockerCollector()
 
 /**
  * @brief curl 핸들 풀을 초기화합니다
- * 
+ *
  * 지정된 수의 curl 핸들을 생성하고 기본 옵션을 설정합니다.
- * 
+ *
  * @param poolSize 생성할 curl 핸들의 수
  */
 void DockerCollector::initCurlPool(size_t poolSize)
@@ -93,9 +93,9 @@ void DockerCollector::initCurlPool(size_t poolSize)
 
 /**
  * @brief 풀에서 curl 핸들을 획득합니다
- * 
+ *
  * 사용 가능한 핸들이 없으면 새로운 핸들을 생성합니다.
- * 
+ *
  * @return CURL* 사용할 준비가 된 curl 핸들, 실패 시 nullptr
  */
 CURL *DockerCollector::getCurlHandle()
@@ -124,9 +124,9 @@ CURL *DockerCollector::getCurlHandle()
 
 /**
  * @brief 사용한 curl 핸들을 풀에 반환합니다
- * 
+ *
  * 핸들을 초기화하고 기본 옵션을 다시 설정한 후 풀에 추가합니다.
- * 
+ *
  * @param handle 반환할 curl 핸들
  */
 void DockerCollector::returnCurlHandle(CURL *handle)
@@ -149,7 +149,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 
 /**
  * @brief 컨테이너의 포트 정보를 포트 번호 기준으로 정렬합니다
- * 
+ *
  * @param container 포트를 정렬할 컨테이너 정보 구조체
  */
 void DockerCollector::sortPorts(DockerContainerInfo &container)
@@ -160,7 +160,7 @@ void DockerCollector::sortPorts(DockerContainerInfo &container)
 
 /**
  * @brief Docker API를 통해 컨테이너 정보를 수집합니다
- * 
+ *
  * Docker 소켓에 연결하여 실행 중인 모든 컨테이너의 정보를 가져옵니다.
  * 컨테이너별로 상세 정보, 통계, 네트워크, 볼륨 등의 데이터를 수집합니다.
  * 성능 최적화를 위해 캐싱 및 비동기 처리를 활용합니다.
@@ -185,7 +185,7 @@ void DockerCollector::collect()
         }
 
         // JSON 파싱
-        vector<DockerContainerInfo> containers;
+        vector<DockerContainerInfo> localcontainers;
         try
         {
             auto root = json::parse(readBuffer);
@@ -201,9 +201,6 @@ void DockerCollector::collect()
                 // 컨테이너 ID 가져오기
                 string containerId = container["Id"];
 
-                // 필요한 경우에만 상세 정보 가져오기
-                bool needDetailedInfo = false;
-
                 // 캐시 확인
                 bool useCache = false;
                 DockerContainerInfo cachedInfo;
@@ -214,10 +211,6 @@ void DockerCollector::collect()
                     {
                         cachedInfo = statsCache[containerId].info;
                         useCache = true;
-                    }
-                    else
-                    {
-                        needDetailedInfo = true;
                     }
                 }
 
@@ -274,7 +267,7 @@ void DockerCollector::collect()
                             time_t timestamp = container["Created"];
                             char timeStr[20];
                             struct tm *timeinfo = localtime(&timestamp);
-                            strftime(timeStr, sizeof(timeStr), "%y-%m-%d %H:%M:%S", timeinfo);
+                            strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", timeinfo);
                             info.container_created = string(timeStr);
                             
                         }
@@ -561,7 +554,6 @@ void DockerCollector::collect()
                                     !statsRoot["precpu_stats"]["system_cpu_usage"].is_null()) {
                                     systemDelta = statsRoot["cpu_stats"]["system_cpu_usage"].get<uint64_t>() -
                                                       statsRoot["precpu_stats"]["system_cpu_usage"].get<uint64_t>();
-                                    
                                 }
 
                                 // CPU 개수를 안전하게 처리
@@ -569,17 +561,15 @@ void DockerCollector::collect()
                                 if (statsRoot["cpu_stats"].contains("online_cpus") && 
                                     !statsRoot["cpu_stats"]["online_cpus"].is_null()) {
                                     numCPUs = statsRoot["cpu_stats"]["online_cpus"].get<int>();
-                                    
                                 }
 
                                 if (systemDelta > 0 && numCPUs > 0)
                                 {
-                                    info.cpu_usage = (static_cast<double>(cpuDelta) / systemDelta) * numCPUs * 100.0;
-                                    
+                                    info.cpu_usage = (static_cast<double>(cpuDelta) / static_cast<double>(systemDelta)) * numCPUs * 100.0;
                                 }
 
                                 // 메모리 사용량 (MB)
-                                info.memory_usage = statsRoot["memory_stats"]["usage"].get<uint64_t>() / (1024.0 * 1024.0);
+                                info.memory_usage = statsRoot["memory_stats"]["usage"].get<uint64_t>();
                                 
                                 // 네트워크 I/O
                                 const auto &networks = statsRoot["networks"];
@@ -589,8 +579,6 @@ void DockerCollector::collect()
                                 {
                                     info.network_rx_bytes += it.value()["rx_bytes"].get<uint64_t>();
                                     info.network_tx_bytes += it.value()["tx_bytes"].get<uint64_t>();
-                                    
-                                    
                                 }
 
                                 // 블록 I/O
@@ -608,13 +596,12 @@ void DockerCollector::collect()
                                 // 메모리 제한 및 백분율 추가
                                 if (statsRoot["memory_stats"].contains("limit") && statsRoot["memory_stats"]["limit"].is_number_unsigned())
                                 {
-                                    info.memory_limit = statsRoot["memory_stats"]["limit"].get<uint64_t>() / (1024.0 * 1024.0);
+                                    info.memory_limit = statsRoot["memory_stats"]["limit"].get<uint64_t>();
                                     
                                     // 메모리 사용량 백분율 계산
                                     if (info.memory_limit > 0)
                                     {
-                                        info.memory_percent = (info.memory_usage / info.memory_limit) * 100.0;
-                                        
+                                        info.memory_percent = (static_cast<double>(info.memory_usage) / static_cast<double>(info.memory_limit)) * 100.0;
                                     }
                                 }
                                 
@@ -624,14 +611,13 @@ void DockerCollector::collect()
                                     statsRoot["pids_stats"]["current"].is_number_integer())
                                 {
                                     info.pids = statsRoot["pids_stats"]["current"].get<int>();
-                                    
                                 }
                                 
                                 // 네트워크 인터페이스별 정보 업데이트
                                 if (statsRoot.contains("networks") && statsRoot["networks"].is_object())
                                 {
-                                    const auto& networks = statsRoot["networks"];
-                                    for (auto it = networks.begin(); it != networks.end(); ++it)
+                                    const auto& networkList = statsRoot["networks"];
+                                    for (auto it = networkList.begin(); it != networkList.end(); ++it)
                                     {
                                         string netName = it.key();
                                         // 기존 네트워크 목록에서 일치하는 네트워크 찾기
@@ -678,7 +664,7 @@ void DockerCollector::collect()
                 DockerContainerInfo info = f.get();
                 if (!info.container_name.empty() && info.container_name != "Unknown") // 유효한 컨테이너 정보만 추가
                 {
-                    containers.push_back(info);
+                    localcontainers.push_back(info);
                 }
             }
         }
@@ -694,13 +680,13 @@ void DockerCollector::collect()
         }
 
         returnCurlHandle(curl);
-        this->containers = containers;
+        this->containers = localcontainers;
     }
 }
 
 /**
  * @brief 수집된 컨테이너 정보 목록을 반환합니다
- * 
+ *
  * @return 수집된 Docker 컨테이너 정보의 벡터
  */
 vector<DockerContainerInfo> DockerCollector::getContainers() const

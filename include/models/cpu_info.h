@@ -17,7 +17,7 @@ using namespace std;
  */
 struct CpuCoreInfo
 {
-    int id;            ///< 코어 식별자
+    size_t id;         ///< 코어 식별자
     float usage;       ///< 코어 사용률 (백분율)
     float temperature; ///< 코어 온도 (섭씨)
 };

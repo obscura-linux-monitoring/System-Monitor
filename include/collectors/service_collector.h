@@ -241,10 +241,11 @@ private:
      * @param service_path 서비스 경로
      * @param properties 속성 이름 배열
      * @param count 속성 개수
+     * @param service 서비스 객체
      * @return 성공 여부
      */
     bool GetMultipleProperties(sd_bus *bus, const char *service_path,
-                               const char *properties[], int count);
+                               ServiceInfo &service);
 
     /**
      * @brief 모든 서비스의 활성화 상태를 한 번에 수집

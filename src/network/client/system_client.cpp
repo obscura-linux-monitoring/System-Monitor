@@ -22,19 +22,19 @@ bool isDisconnected_ = false;
 
 /**
  * @brief SystemClient 클래스의 생성자
- * 
+ *
  * @param serverInfo 서버 연결 정보
  * @param systemKey 시스템 식별 키
  * @param collectionInterval 메트릭 수집 간격(초)
  * @param sendingInterval 데이터 전송 간격(초)
  * @param user_id 사용자 ID
- * 
+ *
  * @details 시스템 클라이언트를 초기화하고 CollectorManager와 DataSender를 설정합니다.
  */
 SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey,
                            int collectionInterval, int sendingInterval, const string &user_id)
-    : serverInfo_(serverInfo), systemKey_(systemKey),
-      collectionInterval_(collectionInterval), sendingInterval_(sendingInterval), user_id_(user_id)
+    : serverInfo_(serverInfo), systemKey_(systemKey), user_id_(user_id),
+      collectionInterval_(collectionInterval), sendingInterval_(sendingInterval)
 {
     // 시작 시간 기록
     auto startTime = chrono::system_clock::now();
@@ -62,7 +62,7 @@ SystemClient::SystemClient(const ServerInfo &serverInfo, const string &systemKey
 
 /**
  * @brief SystemClient 클래스의 소멸자
- * 
+ *
  * @details 클라이언트 연결을 안전하게 종료하고 리소스를 정리합니다.
  */
 SystemClient::~SystemClient()
@@ -72,12 +72,12 @@ SystemClient::~SystemClient()
 
 /**
  * @brief 서버에 연결하고 데이터 수집 및 전송을 시작
- * 
- * @details 
+ *
+ * @details
  * 1. 수집 관리자를 시작하여 메트릭 수집 시작
  * 2. 데이터 송신기를 통해 서버에 연결
  * 3. 정기적인 데이터 전송 시작
- * 
+ *
  * @return void
  */
 void SystemClient::connect()
@@ -113,12 +113,12 @@ void SystemClient::connect()
 
 /**
  * @brief 서버 연결을 종료하고 데이터 수집 및 전송을 중지
- * 
+ *
  * @details 다음 순서로 안전하게 종료합니다:
  * 1. 데이터 송신 중지
  * 2. 메트릭 수집 중지
  * 3. 서버 연결 해제
- * 
+ *
  * @return void
  */
 void SystemClient::disconnect()
@@ -151,7 +151,7 @@ void SystemClient::disconnect()
 
 /**
  * @brief 서버 연결 상태 확인
- * 
+ *
  * @return bool 서버에 연결되어 있으면 true, 아니면 false
  */
 bool SystemClient::isConnected() const

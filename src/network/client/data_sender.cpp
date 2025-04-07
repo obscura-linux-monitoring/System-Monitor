@@ -18,8 +18,8 @@ extern atomic<bool> running;
  * @param user_id 사용자 식별자
  */
 DataSender::DataSender(const ServerInfo &serverInfo, ThreadSafeQueue<SystemMetrics> &dataQueue, const string &user_id)
-    : serverInfo_(serverInfo), dataQueue_(dataQueue), user_id_(user_id), isConnected_(false), running_(false),
-      commandResultQueue_(100), commandQueue_(100), numWorkers_(4) // 커맨드 결과 큐와 커맨드 큐 크기 설정
+    : serverInfo_(serverInfo), dataQueue_(dataQueue), commandResultQueue_(100), commandQueue_(100),
+      user_id_(user_id), isConnected_(false), running_(false), numWorkers_(4)
 {
     // WebSocket 클라이언트 초기화
     client_.init_asio();
@@ -73,11 +73,15 @@ bool DataSender::connect()
 
         // 연결 실패 핸들러 설정
         client_.set_fail_handler([this](WebsocketHandle hdl)
-                                 { isConnected_ = false; });
+                                 { 
+                                    (void)hdl;
+                                    isConnected_ = false; });
 
         // 연결 종료 핸들러 설정
         client_.set_close_handler([this](WebsocketHandle hdl)
-                                  { isConnected_ = false; });
+                                  {
+                                      (void)hdl;
+                                      isConnected_ = false; });
 
         // 연결 시도
         client_.connect(con);

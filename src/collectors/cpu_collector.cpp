@@ -98,7 +98,7 @@ void CPUCollector::collectCpuInfo()
             }
             else if (strstr(cpuinfo_line, "CPU implementer"))
             {
-                int implementer;
+                unsigned int implementer;
                 if (sscanf(cpuinfo_line, "CPU implementer\t: %x", &implementer) == 1)
                 {
                     // ARM 제조사 코드
@@ -207,14 +207,14 @@ void CPUCollector::collectCpuInfo()
             if (siblings > cores)
             {
                 cpuInfo.is_hyperthreading = true;
-                cpuInfo.total_cores = cores;
-                cpuInfo.total_logical_cores = siblings;
+                cpuInfo.total_cores = static_cast<size_t>(cores);
+                cpuInfo.total_logical_cores = static_cast<size_t>(siblings);
             }
             else
             {
                 cpuInfo.is_hyperthreading = false;
-                cpuInfo.total_cores = cores;
-                cpuInfo.total_logical_cores = cores;
+                cpuInfo.total_cores = static_cast<size_t>(cores);
+                cpuInfo.total_logical_cores = static_cast<size_t>(cores);
             }
         }
 
@@ -260,7 +260,7 @@ void CPUCollector::collect()
     // 각 코어별 사용량 읽기
     vector<stJiffies> newCoreJiffies;
     newCoreJiffies.reserve(prevCoreJiffies.size()); // 메모리 재할당 방지
-    int core_id = 0;                                // 코어 ID 추적
+    size_t core_id = 0;                             // 코어 ID 추적
 
     while (fgets(line, sizeof(line), pStat))
     {
@@ -272,7 +272,7 @@ void CPUCollector::collect()
             newCoreJiffies.push_back(coreJiffies);
 
             // cores 벡터 크기 조정 (필요시)
-            if (core_id >= static_cast<int>(cpuInfo.cores.size()))
+            if (core_id >= cpuInfo.cores.size())
             {
                 CpuCoreInfo newCore;
                 newCore.id = core_id;
@@ -283,7 +283,7 @@ void CPUCollector::collect()
             else
             {
                 // ID 값 설정
-                cpuInfo.cores[core_id].id = core_id;
+                cpuInfo.cores[static_cast<size_t>(core_id)].id = static_cast<size_t>(core_id);
             }
             core_id++;
         }
@@ -410,7 +410,7 @@ void CPUCollector::collect()
             {
                 total += temp.temperature;
             }
-            cpuInfo.temperature = static_cast<float>(total / cpuInfo.cores.size());
+            cpuInfo.temperature = static_cast<float>(total / static_cast<double>(cpuInfo.cores.size()));
         }
     }
 }

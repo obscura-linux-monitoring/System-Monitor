@@ -19,7 +19,7 @@ struct NetworkInterface
     string mac;             /**< 인터페이스의 MAC(물리적) 주소 */
     string status;          /**< 인터페이스의 현재 상태 (예: up, down) */
     uint64_t speed;         /**< 인터페이스의 속도 (Mbps) */
-    uint64_t mtu;           /**< 최대 전송 단위 (Maximum Transmission Unit) */
+    int mtu;                /**< 최대 전송 단위 (Maximum Transmission Unit) */
     uint64_t rx_bytes;      /**< 수신된 총 바이트 수 */
     uint64_t tx_bytes;      /**< 전송된 총 바이트 수 */
     uint64_t rx_packets;    /**< 수신된 총 패킷 수 */

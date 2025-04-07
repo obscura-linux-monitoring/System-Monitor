@@ -10,7 +10,7 @@ using namespace std;
 
 /**
  * @brief 메모리 정보 구조체를 초기화합니다.
- * 
+ *
  * 모든 메모리 관련 필드를 0으로 설정합니다.
  */
 void MemoryCollector::clear()
@@ -29,10 +29,10 @@ void MemoryCollector::clear()
 
 /**
  * @brief 시스템의 메모리 정보를 수집합니다.
- * 
+ *
  * /proc/meminfo 파일에서 메모리 정보를 읽어와 MemoryInfo 구조체에 저장합니다.
  * 메모리 사용량, 총 메모리, 사용 가능한 메모리 등의 정보를 수집하고 계산합니다.
- * 
+ *
  * @throw runtime_error /proc/meminfo 파일을 열 수 없을 경우 예외를 발생시킵니다.
  */
 void MemoryCollector::collect()
@@ -46,7 +46,6 @@ void MemoryCollector::collect()
     // 메모리 정보 초기화
     clear();
 
-    size_t buffers = 0;
     size_t sreclaimable = 0;
     size_t shmem = 0;
 
@@ -89,7 +88,7 @@ void MemoryCollector::collect()
     // 메모리 사용 비율 계산 (퍼센트)
     if (memoryInfo.total > 0)
     {
-        memoryInfo.usage_percent = (float)memoryInfo.used / memoryInfo.total * 100.0f;
+        memoryInfo.usage_percent = (float)memoryInfo.used / (float)memoryInfo.total * 100.0f;
     }
     else
     {
@@ -99,7 +98,7 @@ void MemoryCollector::collect()
 
 /**
  * @brief 수집된 메모리 정보를 반환합니다.
- * 
+ *
  * @return MemoryInfo 수집된 시스템 메모리 정보를 담고 있는 구조체
  */
 MemoryInfo MemoryCollector::getMemoryInfo() const

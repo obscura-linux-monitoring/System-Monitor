@@ -57,5 +57,5 @@ struct ProcessInfo
     int open_files;
 
     /** @brief 프로세스 우선순위 값 (-20에서 19 사이, 낮을수록 우선순위 높음) */
-    int nice;
+    long nice;
 };

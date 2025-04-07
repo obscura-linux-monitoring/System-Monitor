@@ -19,7 +19,7 @@ using namespace std;
 
 /**
  * @brief 서비스 수집기 생성자
- * 
+ *
  * @param threads 병렬 처리에 사용할 스레드 수
  * @param useNative 네이티브 API 사용 여부
  */
@@ -33,7 +33,7 @@ ServiceCollector::ServiceCollector(int threads, bool useNative) : maxThreads(max
 
 /**
  * @brief 네이티브 API 사용 여부 설정
- * 
+ *
  * @param use 네이티브 API 사용 여부
  */
 void ServiceCollector::setUseNativeAPI(bool use)
@@ -43,7 +43,7 @@ void ServiceCollector::setUseNativeAPI(bool use)
 
 /**
  * @brief 서비스 정보 수집 메서드
- * 
+ *
  * 백그라운드에서 이미 수집된 데이터를 사용하고 필요한 경우 특정 서비스에 대한 추가 정보만 업데이트합니다.
  */
 void ServiceCollector::collect()
@@ -76,7 +76,7 @@ void ServiceCollector::collect()
 
 /**
  * @brief 모든 서비스 정보를 최적화된 방식으로 수집
- * 
+ *
  * 시스템 명령어를 실행하여 서비스 목록을 가져오고, 변경된 서비스를 감지하여 업데이트합니다.
  * 병렬 처리와 캐싱을 통해 성능을 최적화합니다.
  */
@@ -100,27 +100,27 @@ void ServiceCollector::collectAllServicesInfo()
     }
 
     // 결과 읽기
-    string result;
+    string commandResult;
     char buffer[4096];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
     {
-        result += buffer;
+        commandResult += buffer;
     }
     pclose(pipe);
 
     // 현재 시스템의 서비스 목록 수집
-    vector<ServiceInfo> currentServices;
+    vector<ServiceInfo> tempServices;
 
     // JSON 파싱 (간단한 구현으로 대체 - 실제로는 JSON 라이브러리 사용 권장)
     // 여기서는 파싱 코드를 생략하고, 기존 방식으로 진행합니다
-    collectServiceList(currentServices);
+    collectServiceList(tempServices);
 
     // 2. 변경 감지 및 캐싱 메커니즘
     {
         lock_guard<mutex> lock(cacheMutex);
 
         // 새 서비스 추가 및 변경 서비스 표시
-        for (auto &service : currentServices)
+        for (auto &service : tempServices)
         {
             auto it = serviceInfoCache.find(service.name);
             if (it == serviceInfoCache.end())
@@ -145,7 +145,7 @@ void ServiceCollector::collectAllServicesInfo()
         auto it = serviceInfoCache.begin();
         while (it != serviceInfoCache.end())
         {
-            if (none_of(currentServices.begin(), currentServices.end(),
+            if (none_of(tempServices.begin(), tempServices.end(),
                         [&it](const ServiceInfo &info)
                         { return info.name == it->first; }))
             {
@@ -197,13 +197,13 @@ void ServiceCollector::collectAllServicesInfo()
                 runningThreads = 0;
             }
 
-            ServiceInfo serviceInfo;
+            ServiceInfo tempServiceInfo;
             {
                 lock_guard<mutex> lock(cacheMutex);
                 auto it = serviceInfoCache.find(serviceName);
                 if (it != serviceInfoCache.end())
                 {
-                    serviceInfo = it->second.info;
+                    tempServiceInfo = it->second.info;
                 }
                 else
                 {
@@ -213,15 +213,15 @@ void ServiceCollector::collectAllServicesInfo()
 
             // 락 없이 작업 시작
             futures.push_back(async(launch::async,
-                                    [this, serviceName, serviceInfo]() mutable
+                                    [this, serviceName, tempServiceInfo]() mutable
                                     {
-                                        collectServiceDetails(serviceInfo);
+                                        collectServiceDetails(tempServiceInfo);
 
                                         lock_guard<mutex> lock(cacheMutex);
                                         auto it = serviceInfoCache.find(serviceName);
                                         if (it != serviceInfoCache.end())
                                         {
-                                            it->second.info = serviceInfo;
+                                            it->second.info = tempServiceInfo;
                                             it->second.lastUpdated = chrono::system_clock::now();
                                             it->second.needsUpdate = false;
                                         }
@@ -253,7 +253,7 @@ void ServiceCollector::collectAllServicesInfo()
 
 /**
  * @brief 두 서비스 정보 간의 중요한 변경 여부 확인
- * 
+ *
  * @param oldInfo 이전 서비스 정보
  * @param newInfo 새 서비스 정보
  * @return bool 중요한 변경이 있으면 true, 없으면 false
@@ -267,12 +267,12 @@ bool ServiceCollector::hasServiceChanged(const ServiceInfo &oldInfo, const Servi
 
 /**
  * @brief 기존 서비스 목록 수집 메서드
- * 
+ *
  * systemctl 명령어를 사용하여 시스템의 모든 서비스 목록을 가져옵니다.
- * 
+ *
  * @param result 수집된 서비스 정보를 저장할 벡터
  */
-void ServiceCollector::collectServiceList(vector<ServiceInfo> &result)
+void ServiceCollector::collectServiceList(vector<ServiceInfo> &serviceList)
 {
     // 모든 서비스를 한 번에 가져오는 명령으로 최적화
     FILE *pipe = popen("systemctl list-unit-files --type=service --no-pager --no-legend 2>/dev/null", "r");
@@ -304,7 +304,7 @@ void ServiceCollector::collectServiceList(vector<ServiceInfo> &result)
             info.enabled = (status == "enabled");
             info.status = status;
 
-            result.push_back(info);
+            serviceList.push_back(info);
         }
     }
 
@@ -317,10 +317,10 @@ void ServiceCollector::collectServiceList(vector<ServiceInfo> &result)
 
 /**
  * @brief 서비스 상세 정보 수집
- * 
+ *
  * 특정 서비스의 상세 정보(타입, 상태, 자원 사용량 등)를 수집합니다.
  * 캐싱 메커니즘을 사용하여 불필요한 업데이트를 방지합니다.
- * 
+ *
  * @param service 상세 정보를 수집할 서비스 객체
  * @param forceUpdate 강제 업데이트 여부, 기본값은 false
  */
@@ -412,9 +412,9 @@ void ServiceCollector::collectServiceDetails(ServiceInfo &service, bool forceUpd
 
 /**
  * @brief 서비스의 자원 사용량 수집
- * 
+ *
  * 프로세스 ID를 기반으로 서비스의 메모리 사용량과 CPU 사용률을 수집합니다.
- * 
+ *
  * @param service 자원 사용량을 수집할 서비스 객체
  * @param pid 서비스의 프로세스 ID
  */
@@ -470,9 +470,9 @@ void ServiceCollector::collectResourceUsageByPID(ServiceInfo &service, const str
 
 /**
  * @brief 캐시 정보 업데이트
- * 
+ *
  * 서비스 정보를 캐시에 저장하고 최종 업데이트 시간을 기록합니다.
- * 
+ *
  * @param name 서비스 이름
  * @param info 업데이트할 서비스 정보
  */
@@ -498,30 +498,30 @@ void ServiceCollector::updateCachedInfo(const string &name, const ServiceInfo &i
 
 /**
  * @brief 더 이상 존재하지 않는 서비스 제거
- * 
+ *
  * 현재 시스템에 존재하지 않는 서비스를 결과 목록에서 제거합니다.
- * 
+ *
  * @param currentServices 현재 시스템에 존재하는 서비스 목록
  */
-void ServiceCollector::removeObsoleteServices(const vector<ServiceInfo> &currentServices)
+void ServiceCollector::removeObsoleteServices(const vector<ServiceInfo> &activeServices)
 {
     // 현재 시스템에 존재하지 않는 서비스 제거
     serviceInfo.erase(
         remove_if(serviceInfo.begin(), serviceInfo.end(),
-                  [&currentServices](const ServiceInfo &info)
+                  [&activeServices](const ServiceInfo &info)
                   {
-                      return find_if(currentServices.begin(), currentServices.end(),
+                      return find_if(activeServices.begin(), activeServices.end(),
                                      [&info](const ServiceInfo &current)
                                      {
                                          return current.name == info.name;
-                                     }) == currentServices.end();
+                                     }) == activeServices.end();
                   }),
         serviceInfo.end());
 }
 
 /**
  * @brief 모든 서비스 정보 초기화
- * 
+ *
  * 수집된 서비스 정보와 캐시를 모두 비웁니다.
  */
 void ServiceCollector::clear()
@@ -533,7 +533,7 @@ void ServiceCollector::clear()
 
 /**
  * @brief 수집된 서비스 정보 반환 (복사본)
- * 
+ *
  * @return vector<ServiceInfo> 서비스 정보 벡터의 복사본
  */
 vector<ServiceInfo> ServiceCollector::getServiceInfo() const
@@ -543,7 +543,7 @@ vector<ServiceInfo> ServiceCollector::getServiceInfo() const
 
 /**
  * @brief 수집된 서비스 정보 참조 반환
- * 
+ *
  * @return const vector<ServiceInfo>& 서비스 정보 벡터의 참조
  */
 const vector<ServiceInfo> &ServiceCollector::getServiceInfoRef() const
@@ -553,9 +553,9 @@ const vector<ServiceInfo> &ServiceCollector::getServiceInfoRef() const
 
 /**
  * @brief 특정 서비스의 정보 업데이트
- * 
+ *
  * 이름으로 서비스를 찾아 정보를 업데이트하거나, 없는 경우 새로 추가합니다.
- * 
+ *
  * @param newInfo 업데이트할 서비스 정보
  */
 void ServiceCollector::updateServiceInfo(const ServiceInfo &newInfo)
@@ -582,7 +582,7 @@ void ServiceCollector::updateServiceInfo(const ServiceInfo &newInfo)
 
 /**
  * @brief 네이티브 API를 사용한 정보 수집
- * 
+ *
  * systemd의 네이티브 D-Bus API를 사용하여 서비스 정보를 수집합니다.
  */
 void ServiceCollector::collectUsingNativeAPI()
@@ -607,7 +607,7 @@ void ServiceCollector::collectUsingNativeAPI()
     sd_bus *bus = m_bus;
 
     // 현재 서비스 목록을 저장할 벡터
-    vector<ServiceInfo> currentServices;
+    vector<ServiceInfo> discoveredServices;
 
     // 모든 systemd 유닛 목록 요청
     r = sd_bus_call_method(bus,
@@ -678,7 +678,7 @@ void ServiceCollector::collectUsingNativeAPI()
             // 추가 서비스 세부 정보 수집
             collectServiceDetailsNative(info);
 
-            currentServices.push_back(info);
+            discoveredServices.push_back(info);
         }
 
         sd_bus_message_exit_container(reply);
@@ -690,7 +690,7 @@ void ServiceCollector::collectUsingNativeAPI()
     map<string, bool> enabledStates;
     collectAllEnabledStatesAtOnce(bus, enabledStates);
 
-    for (auto &service : currentServices)
+    for (auto &service : discoveredServices)
     {
         auto it = enabledStates.find(service.name);
         if (it != enabledStates.end())
@@ -707,7 +707,7 @@ void ServiceCollector::collectUsingNativeAPI()
         lock_guard<mutex> lock(cacheMutex);
         serviceInfoCache.clear();
 
-        for (const auto &service : currentServices)
+        for (const auto &service : discoveredServices)
         {
             CachedServiceInfo cachedInfo;
             cachedInfo.info = service;
@@ -727,9 +727,9 @@ void ServiceCollector::collectUsingNativeAPI()
 
 /**
  * @brief 네이티브 API를 사용한 서비스 상세 정보 수집
- * 
+ *
  * systemd의 D-Bus API를 사용하여 특정 서비스의 상세 정보를 수집합니다.
- * 
+ *
  * @param service 상세 정보를 수집할 서비스 객체
  */
 void ServiceCollector::collectServiceDetailsNative(ServiceInfo &service)
@@ -764,13 +764,15 @@ void ServiceCollector::collectServiceDetailsNative(ServiceInfo &service)
 
         if (r >= 0 && service_path != NULL)
         {
-            // 여러 속성을 한 번에 가져오기
-            const char *properties[] = {"Type", "MainPID", "MemoryCurrent", "CPUUsageNSec"};
-
             // 여러 속성을 단일 호출로 가져오기
-            if (GetMultipleProperties(bus, service_path, properties, 4))
+            if (GetMultipleProperties(bus, service_path, service))
             {
-                // 결과 처리
+                // 서비스 정보가 이미 설정됨
+                LOG_INFO("서비스 상세 정보 수집 완료: {}", service.name);
+            }
+            else
+            {
+                LOG_ERROR("서비스 상세 정보 수집 실패: {}", service.name);
             }
         }
     }
@@ -788,9 +790,9 @@ void ServiceCollector::collectServiceDetailsNative(ServiceInfo &service)
 
 /**
  * @brief 모든 서비스의 활성화 상태를 한 번에 수집
- * 
+ *
  * D-Bus API를 사용하여 모든 서비스의 활성화 상태를 효율적으로 수집합니다.
- * 
+ *
  * @param bus D-Bus 연결 객체
  * @param enabledStates 서비스 이름과 활성화 상태를 매핑할 맵
  */
@@ -869,17 +871,17 @@ void ServiceCollector::collectAllEnabledStatesAtOnce(sd_bus *bus, map<string, bo
 
 /**
  * @brief 기본 서비스 정보만 수집
- * 
+ *
  * 서비스의 기본 정보만 빠르게 수집합니다. 전체 업데이트와 부분 업데이트를 시간에 따라 결정합니다.
  */
 void ServiceCollector::collectBasicServiceInfo()
 {
     auto now = chrono::system_clock::now();
-    static auto lastFullUpdate = now;
+    static auto lastCompleteUpdate = now;
 
     // 5초 이내에는 변경된 서비스만 업데이트
     bool partialUpdate = chrono::duration_cast<chrono::seconds>(
-                             now - lastFullUpdate)
+                             now - lastCompleteUpdate)
                              .count() < 5;
 
     if (partialUpdate)
@@ -898,13 +900,13 @@ void ServiceCollector::collectBasicServiceInfo()
         {
             collectAllServicesInfo();
         }
-        lastFullUpdate = now;
+        lastCompleteUpdate = now;
     }
 }
 
 /**
  * @brief 변경된 서비스만 업데이트
- * 
+ *
  * 시스템에서 변경된 서비스만 식별하여 업데이트합니다.
  */
 void ServiceCollector::updateChangedServicesOnly()
@@ -955,13 +957,13 @@ void ServiceCollector::updateChangedServicesOnly()
     // 변경된 서비스만 업데이트
     for (const auto &name : changedServices)
     {
-        ServiceInfo serviceInfo;
+        ServiceInfo tempInfo;
         {
             lock_guard<mutex> lock(cacheMutex);
             auto it = serviceInfoCache.find(name);
             if (it != serviceInfoCache.end())
             {
-                serviceInfo = it->second.info;
+                tempInfo = it->second.info;
             }
             else
             {
@@ -969,8 +971,8 @@ void ServiceCollector::updateChangedServicesOnly()
             }
         }
 
-        collectServiceDetails(serviceInfo, true);
-        updateCachedInfo(name, serviceInfo);
+        collectServiceDetails(tempInfo, true);
+        updateCachedInfo(name, tempInfo);
     }
 
     // 캐시에서 결과 벡터로 복사
@@ -986,17 +988,18 @@ void ServiceCollector::updateChangedServicesOnly()
 
 /**
  * @brief 여러 속성을 한 번에 가져오는 도우미 메서드
- * 
+ *
  * D-Bus API를 사용하여 여러 속성을 단일 호출로 효율적으로 가져옵니다.
- * 
+ *
  * @param bus D-Bus 연결 객체
  * @param service_path 서비스 경로
  * @param properties 가져올 속성 배열
  * @param count 속성 배열의 크기
+ * @param service 서비스 객체
  * @return bool 속성 가져오기 성공 여부
  */
 bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_path,
-                                          const char *properties[], int count)
+                                             ServiceInfo &service)
 {
     sd_bus_error error = SD_BUS_ERROR_NULL;
     sd_bus_message *reply = NULL;
@@ -1027,35 +1030,83 @@ bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_pa
         return false;
     }
 
-    bool found[count] = {false};
-    int foundCount = 0;
-
     // 모든 속성 순회
-    while (foundCount < count &&
-           sd_bus_message_enter_container(reply, SD_BUS_TYPE_DICT_ENTRY, "sv") > 0)
+    while (sd_bus_message_enter_container(reply, SD_BUS_TYPE_DICT_ENTRY, "sv") > 0)
     {
         const char *prop_name;
         r = sd_bus_message_read_basic(reply, SD_BUS_TYPE_STRING, &prop_name);
 
         if (r >= 0)
         {
-            // 찾는 속성인지 확인
-            for (int i = 0; i < count; i++)
+            r = sd_bus_message_enter_container(reply, SD_BUS_TYPE_VARIANT, NULL);
+            if (r >= 0)
             {
-                if (!found[i] && strcmp(prop_name, properties[i]) == 0)
+                // Type 속성 처리
+                if (strcmp(prop_name, "Type") == 0)
                 {
-                    // 일치하는 속성 찾음, 값 파싱
-                    r = sd_bus_message_enter_container(reply, SD_BUS_TYPE_VARIANT, NULL);
+                    const char *value;
+                    r = sd_bus_message_read_basic(reply, SD_BUS_TYPE_STRING, &value);
                     if (r >= 0)
                     {
-                        // 타입에 따라 적절히 파싱
-                        // (여기서는 단순화를 위해 기본 타입만 처리)
-                        found[i] = true;
-                        foundCount++;
+                        service.type = value;
                     }
-                    sd_bus_message_exit_container(reply); // variant 컨테이너 종료
-                    break;
                 }
+                // MainPID 속성 처리
+                else if (strcmp(prop_name, "MainPID") == 0)
+                {
+                    uint32_t pid;
+                    r = sd_bus_message_read_basic(reply, SD_BUS_TYPE_UINT32, &pid);
+                    if (r >= 0 && pid > 0)
+                    {
+                        // PID를 이용해 자원 사용량 수집 가능
+                        string pidStr = to_string(pid);
+                        collectResourceUsageByPID(service, pidStr);
+                    }
+                }
+                // MemoryCurrent 속성 처리
+                else if (strcmp(prop_name, "MemoryCurrent") == 0)
+                {
+                    uint64_t memory;
+                    r = sd_bus_message_read_basic(reply, SD_BUS_TYPE_UINT64, &memory);
+                    if (r >= 0)
+                    {
+                        service.memory_usage = memory;
+                    }
+                }
+                // CPUUsageNSec 속성 처리
+                else if (strcmp(prop_name, "CPUUsageNSec") == 0)
+                {
+                    uint64_t cpu_nsec;
+                    r = sd_bus_message_read_basic(reply, SD_BUS_TYPE_UINT64, &cpu_nsec);
+                    if (r >= 0)
+                    {
+                        // 나노초 단위 CPU 사용시간을 백분율로 변환
+                        // 실제 변환은 시스템에 따라 조정 필요
+                        static uint64_t last_time = 0;
+                        static uint64_t last_cpu_nsec = 0;
+
+                        uint64_t current_time = static_cast<uint64_t>(chrono::duration_cast<chrono::nanoseconds>(
+                            chrono::system_clock::now().time_since_epoch())
+                            .count());
+
+                        if (last_time > 0 && last_cpu_nsec > 0)
+                        {
+                            uint64_t time_diff = current_time - last_time;
+                            uint64_t cpu_diff = cpu_nsec - last_cpu_nsec;
+
+                            if (time_diff > 0)
+                            {
+                                // CPU 사용률을 백분율로 계산
+                                service.cpu_usage = static_cast<float>((static_cast<double>(cpu_diff) / static_cast<double>(time_diff)) * 100.0);
+                            }
+                        }
+
+                        last_time = current_time;
+                        last_cpu_nsec = cpu_nsec;
+                    }
+                }
+
+                sd_bus_message_exit_container(reply); // variant 컨테이너 종료
             }
         }
 
@@ -1065,12 +1116,12 @@ bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_pa
     sd_bus_message_exit_container(reply); // array 컨테이너 종료
     sd_bus_message_unref(reply);
 
-    return foundCount > 0;
+    return true;
 }
 
 /**
  * @brief 소멸자
- * 
+ *
  * 백그라운드 업데이트를 중지하고 D-Bus 연결을 해제합니다.
  */
 ServiceCollector::~ServiceCollector()
@@ -1087,9 +1138,9 @@ ServiceCollector::~ServiceCollector()
 
 /**
  * @brief 상세 정보 수집이 필요한 서비스 추가
- * 
+ *
  * 우선적으로 상세 정보를 수집할 서비스 목록에 추가합니다.
- * 
+ *
  * @param serviceName 추가할 서비스 이름
  */
 void ServiceCollector::addRequiredDetailedService(const string &serviceName)
@@ -1102,7 +1153,7 @@ void ServiceCollector::addRequiredDetailedService(const string &serviceName)
 
 /**
  * @brief 상세 정보 수집 목록 초기화
- * 
+ *
  * 우선적으로 상세 정보를 수집할 서비스 목록을 비웁니다.
  */
 void ServiceCollector::clearRequiredDetailedServices()
@@ -1112,7 +1163,7 @@ void ServiceCollector::clearRequiredDetailedServices()
 
 /**
  * @brief 백그라운드 태스크 실행
- * 
+ *
  * 백그라운드에서 주기적으로 서비스 정보를 수집하는 태스크입니다.
  */
 void ServiceCollector::backgroundUpdateTask()
@@ -1121,20 +1172,20 @@ void ServiceCollector::backgroundUpdateTask()
     {
         {
             // 전체 서비스 정보 업데이트 - 메인 스레드와 별도로 실행
-            vector<ServiceInfo> updatedServices;
+            vector<ServiceInfo> collectedServices;
 
             if (useNativeAPI)
             {
-                updatedServices = collectServicesNativeAsync();
+                collectedServices = collectServicesNativeAsync();
             }
             else
             {
-                updatedServices = collectAllServicesInfoAsync();
+                collectedServices = collectAllServicesInfoAsync();
             }
 
             // 결과를 메인 데이터 구조에 안전하게 병합
             lock_guard<mutex> lock(serviceDataMutex);
-            mergeServiceData(updatedServices);
+            mergeServiceData(collectedServices);
         }
 
         // 5초 간격으로 업데이트
@@ -1147,7 +1198,7 @@ void ServiceCollector::backgroundUpdateTask()
 
 /**
  * @brief 백그라운드 업데이트 시작
- * 
+ *
  * 백그라운드 스레드를 생성하여 주기적인 정보 수집을 시작합니다.
  */
 void ServiceCollector::startBackgroundUpdate()
@@ -1158,7 +1209,7 @@ void ServiceCollector::startBackgroundUpdate()
 
 /**
  * @brief 백그라운드 업데이트 중지
- * 
+ *
  * 백그라운드 스레드를 안전하게 종료합니다.
  */
 void ServiceCollector::stopBackgroundUpdate()
@@ -1172,14 +1223,14 @@ void ServiceCollector::stopBackgroundUpdate()
 
 /**
  * @brief 비동기 네이티브 API 사용 서비스 수집
- * 
+ *
  * 백그라운드 스레드에서 네이티브 API를 사용하여 서비스 정보를 수집합니다.
- * 
+ *
  * @return vector<ServiceInfo> 수집된 서비스 정보 벡터
  */
 vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
 {
-    vector<ServiceInfo> result;
+    vector<ServiceInfo> infoResult;
 
     LOG_INFO("비동기 네이티브 systemd API 서비스 정보 수집");
     int r;
@@ -1192,7 +1243,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
     if (r < 0)
     {
         LOG_ERROR("비동기 시스템 버스 연결 실패: {}", strerror(-r));
-        return result;
+        return infoResult;
     }
 
     // 모든 systemd 유닛 목록 요청
@@ -1210,7 +1261,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
         LOG_ERROR("비동기 ListUnits 메소드 호출 실패: {}", error.message);
         sd_bus_error_free(&error);
         sd_bus_unref(bus);
-        return result;
+        return infoResult;
     }
 
     // 응답 파싱 시작
@@ -1220,7 +1271,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
         LOG_ERROR("비동기 메시지 컨테이너 진입 실패: {}", strerror(-r));
         sd_bus_message_unref(reply);
         sd_bus_unref(bus);
-        return result;
+        return infoResult;
     }
 
     // 서비스 리스트 루프
@@ -1318,7 +1369,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
             sd_bus_error_free(&error);
             error = SD_BUS_ERROR_NULL;
 
-            result.push_back(info);
+            infoResult.push_back(info);
         }
 
         sd_bus_message_exit_container(reply);
@@ -1386,7 +1437,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
     }
 
     // 활성화 상태 업데이트
-    for (auto &service : result)
+    for (auto &service : infoResult)
     {
         auto it = enabledStates.find(service.name);
         if (it != enabledStates.end())
@@ -1398,19 +1449,19 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
 
     sd_bus_error_free(&error);
     sd_bus_unref(bus);
-    return result;
+    return infoResult;
 }
 
 /**
  * @brief 비동기 서비스 정보 수집
- * 
+ *
  * 백그라운드 스레드에서 효율적으로 서비스 정보를 수집합니다.
- * 
+ *
  * @return vector<ServiceInfo> 수집된 서비스 정보 벡터
  */
 vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
 {
-    vector<ServiceInfo> result;
+    vector<ServiceInfo> infoResult;
 
     // 모든 서비스 기본 정보를 한 번에 가져오기
     string cmd = "systemctl list-unit-files --type=service --no-pager --no-legend 2>/dev/null";
@@ -1418,7 +1469,7 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
     if (!pipe)
     {
         LOG_ERROR("비동기 서비스 목록 명령 실행 실패");
-        return result;
+        return infoResult;
     }
 
     // 서비스 기본 정보 수집
@@ -1444,7 +1495,7 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
             info.enabled = (status == "enabled");
             info.status = status;
 
-            result.push_back(info);
+            infoResult.push_back(info);
         }
     }
     pclose(pipe);
@@ -1453,7 +1504,7 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
     int processedCount = 0;
     const int maxServices = 10; // 백그라운드에서는 일부 중요 서비스만 처리
 
-    for (auto &service : result)
+    for (auto &service : infoResult)
     {
         if (processedCount >= maxServices)
             break;
@@ -1503,14 +1554,14 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
         }
     }
 
-    return result;
+    return infoResult;
 }
 
 /**
  * @brief 수집된 서비스 정보 병합
- * 
+ *
  * 백그라운드에서 수집된 서비스 정보를 기존 캐시와 병합합니다.
- * 
+ *
  * @param updatedServices 업데이트된 서비스 정보 벡터
  */
 void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServices)

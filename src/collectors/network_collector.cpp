@@ -92,7 +92,7 @@ void NetworkCollector::collect()
         string ip_address = getIPAddress(sock, if_name);
         string mac_address = getMACAddress(if_name);
         string status = getInterfaceStatus(if_name);
-        int speed = getInterfaceSpeed(if_name);
+        uint64_t speed = getInterfaceSpeed(if_name);
         int mtu = getInterfaceMTU(sock, if_name);
 
         // 이전 데이터가 있는지 확인

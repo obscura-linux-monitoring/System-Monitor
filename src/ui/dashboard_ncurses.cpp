@@ -24,7 +24,7 @@
 
 /**
  * @brief DashboardNcurses 클래스의 생성자
- * 
+ *
  * 멤버 변수들을 초기화합니다.
  */
 DashboardNcurses::DashboardNcurses()
@@ -39,7 +39,7 @@ DashboardNcurses::DashboardNcurses()
 
 /**
  * @brief DashboardNcurses 클래스의 소멸자
- * 
+ *
  * ncurses 환경을 정리하고 종료합니다.
  */
 DashboardNcurses::~DashboardNcurses()
@@ -50,7 +50,7 @@ DashboardNcurses::~DashboardNcurses()
 
 /**
  * @brief ncurses 환경을 초기화합니다.
- * 
+ *
  * 터미널 설정, 색상, 로케일 등의 기본 환경을 설정합니다.
  */
 void DashboardNcurses::init()
@@ -100,7 +100,7 @@ void DashboardNcurses::clearScreen()
 
 /**
  * @brief 시스템 모니터링 정보를 업데이트하고 화면에 표시합니다.
- * 
+ *
  * CPU, 메모리, 디스크, 네트워크 정보를 수집하고 화면에 표시합니다.
  */
 void DashboardNcurses::updateMonitor()
@@ -213,7 +213,7 @@ void DashboardNcurses::updateMonitor()
 
 /**
  * @brief 시스템 기본 정보를 업데이트하고 화면에 표시합니다.
- * 
+ *
  * 호스트명, OS 정보, 커널 버전, 가동 시간 등을 화면에 표시합니다.
  */
 void DashboardNcurses::updateSystemInfo()
@@ -250,7 +250,7 @@ void DashboardNcurses::updateSystemInfo()
 
 /**
  * @brief 프로세스 정보를 업데이트하고 화면에 표시합니다.
- * 
+ *
  * 실행 중인 프로세스 목록을 수집하고 페이지별로 표시합니다.
  * 정렬 기준에 따라 프로세스를 정렬하여 표시합니다.
  */
@@ -358,7 +358,7 @@ void DashboardNcurses::updateProcesses()
 
 /**
  * @brief 도커 컨테이너 정보를 업데이트하고 화면에 표시합니다.
- * 
+ *
  * 실행 중인 도커 컨테이너 목록과 상세 정보를 화면에 표시합니다.
  */
 void DashboardNcurses::updateDocker()
@@ -399,7 +399,7 @@ void DashboardNcurses::updateDocker()
 
 /**
  * @brief 전체 화면을 업데이트합니다.
- * 
+ *
  * 현재 선택된 뷰에 따라 적절한 정보를 화면에 표시합니다.
  * 시간 정보와 안내 메시지도 함께 표시합니다.
  */
@@ -469,7 +469,7 @@ void DashboardNcurses::update()
 
 /**
  * @brief 사용자 입력을 처리합니다.
- * 
+ *
  * 키보드 입력에 따라 다양한 동작을 수행합니다:
  * - q/Q: 프로그램 종료
  * - m/M: 모니터링 화면으로 전환
@@ -546,7 +546,7 @@ void DashboardNcurses::handleInput()
 
 /**
  * @brief ncurses 환경을 정리합니다.
- * 
+ *
  * 터미널 설정을 원래대로 복원하고 ncurses를 종료합니다.
  */
 void DashboardNcurses::cleanup()
@@ -575,7 +575,7 @@ void DashboardNcurses::cleanup()
 
 /**
  * @brief 구분선을 생성하여 반환합니다.
- * 
+ *
  * @param title 구분선 중앙에 표시할 제목 (선택 사항)
  * @return std::string 생성된 구분선 문자열
  */
@@ -584,7 +584,7 @@ std::string DashboardNcurses::getDivider(const std::string &title)
     LOG_INFO("GET DIVIDER");
     int max_x = getmaxx(stdscr);
     std::string result;
-    result.reserve(max_x * 3);
+    result.reserve(static_cast<std::string::size_type>(max_x * 3));
 
     if (!title.empty())
     {

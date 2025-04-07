@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     /** @brief 데이터 수집 간격 (초) */
     int collectionInterval = 5; // 기본 수집 간격 5초
     /** @brief 서버 데이터 전송 간격 (초) */
-    int sendingInterval = 5;    // 기본 전송 간격 5초
+    int sendingInterval = 5; // 기본 전송 간격 5초
 
     /** @brief 서버 연결 정보 */
     ServerInfo serverInfo;
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 
     /** @brief 사용자 식별자 */
     string user_id;
-    
+
     /** @brief 명령줄 인수 처리 */
     for (int i = 1; i < argc; i++)
     {
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
                 if (colonPos != string::npos)
                 {
                     serverInfo.address = serverUrl.substr(0, colonPos);
-                    serverInfo.port = stoi(serverUrl.substr(colonPos + 1));
+                    serverInfo.port = static_cast<uint16_t>(stoi(serverUrl.substr(colonPos + 1)));
                     printf("서버 주소: %s, 포트: %d\n",
                            serverInfo.address.c_str(),
                            serverInfo.port);
@@ -273,6 +273,7 @@ int main(int argc, char **argv)
         catch (const exception &e)
         {
             // 예외 처리 (비어있음)
+            LOG_ERROR("로컬 UI 모드 실행 중 오류 발생: {}", e.what());
         }
     }
 
@@ -284,6 +285,7 @@ int main(int argc, char **argv)
 
     LOG_INFO("클라이언트 종료");
     Logger::shutdown();
+    printf("클라이언트 종료\n");
 
     return 0;
 }

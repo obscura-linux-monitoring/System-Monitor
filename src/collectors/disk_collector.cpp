@@ -20,7 +20,7 @@ using namespace std;
 
 /**
  * @brief DiskCollector 클래스 생성자
- * 
+ *
  * 스레드 풀을 초기화하고 디스크 정보를 처음으로 수집합니다.
  */
 DiskCollector::DiskCollector() : last_collect_time(chrono::steady_clock::now())
@@ -36,7 +36,7 @@ DiskCollector::DiskCollector() : last_collect_time(chrono::steady_clock::now())
 
 /**
  * @brief DiskCollector 클래스 소멸자
- * 
+ *
  * 스레드 풀을 정리하고 수집된 디스크 통계 데이터를 삭제합니다.
  */
 DiskCollector::~DiskCollector()
@@ -58,11 +58,11 @@ DiskCollector::~DiskCollector()
 
 /**
  * @brief 시스템의 모든 디스크 정보를 수집합니다.
- * 
+ *
  * /proc/mounts 파일에서 마운트된 디스크 목록을 읽고 실제 물리적 디스크나
  * 일반적인 파일 시스템만 처리합니다. 각 디스크에 대한 기본 정보를 수집하고
  * 사용량 정보를 업데이트합니다.
- * 
+ *
  * @throw runtime_error /proc/mounts 파일을 열 수 없을 때 발생
  */
 void DiskCollector::collectDiskInfo()
@@ -104,7 +104,7 @@ void DiskCollector::collectDiskInfo()
 
 /**
  * @brief 디스크 사용량 정보만 비동기적으로 업데이트합니다.
- * 
+ *
  * 각 디스크에 대해 비동기 작업을 생성하여 사용량 정보를 수집합니다.
  * 작업에 타임아웃이 적용되며 모든 작업이 완료된 후 I/O 통계 정보도 업데이트합니다.
  */
@@ -129,7 +129,7 @@ void DiskCollector::updateDiskUsage()
                 
                 // 사용률 계산 (백분율)
                 if (disk_info.total > 0) {
-                    disk_info.usage_percent = (float)disk_info.used * 100 / disk_info.total;
+                    disk_info.usage_percent = (static_cast<float>(disk_info.used) * 100.0f) / static_cast<float>(disk_info.total);
                 } else {
                     disk_info.usage_percent = 0.0;
                 }
@@ -177,7 +177,7 @@ void DiskCollector::updateDiskUsage()
 
 /**
  * @brief I/O 통계 정보를 업데이트합니다.
- * 
+ *
  * /proc/diskstats 파일에서 디스크 I/O 통계 정보를 읽어와 각 디스크에 대한
  * 읽기/쓰기 작업 수, 읽기/쓰기 바이트 수, I/O 시간 등의 정보를 업데이트합니다.
  * 이전 통계와 비교하여 초당 읽기/쓰기 속도도 계산합니다.
@@ -238,19 +238,19 @@ void DiskCollector::updateIoStats()
                 disk_info.io_stats.writes = writes_completed;
                 disk_info.io_stats.read_bytes = sectors_read * 512; // 섹터 크기는 일반적으로 512 바이트
                 disk_info.io_stats.write_bytes = sectors_written * 512;
-                disk_info.io_stats.read_time = read_time_ms / 1000; // ms를 초 단위로 변환
-                disk_info.io_stats.write_time = write_time_ms / 1000;
-                disk_info.io_stats.io_time = io_time_ms / 1000;
+                disk_info.io_stats.read_time = static_cast<time_t>(read_time_ms) / 1000;
+                disk_info.io_stats.write_time = static_cast<time_t>(write_time_ms) / 1000;
+                disk_info.io_stats.io_time = static_cast<time_t>(io_time_ms) / 1000;
                 disk_info.io_stats.io_in_progress = io_in_progress;
 
                 // 이전 값과 비교하여 I/O 속도 계산
                 if (previous_stats.find(device_name) != previous_stats.end() && seconds > 0)
                 {
                     const auto &prev = previous_stats[device_name];
-                    disk_info.io_stats.reads_per_sec = (reads_completed - prev.reads) / seconds;
-                    disk_info.io_stats.writes_per_sec = (writes_completed - prev.writes) / seconds;
-                    disk_info.io_stats.read_bytes_per_sec = (sectors_read * 512 - prev.read_bytes) / seconds;
-                    disk_info.io_stats.write_bytes_per_sec = (sectors_written * 512 - prev.write_bytes) / seconds;
+                    disk_info.io_stats.reads_per_sec = static_cast<double>(reads_completed - prev.reads) / seconds;
+                    disk_info.io_stats.writes_per_sec = static_cast<double>(writes_completed - prev.writes) / seconds;
+                    disk_info.io_stats.read_bytes_per_sec = static_cast<double>(sectors_read * 512 - prev.read_bytes) / seconds;
+                    disk_info.io_stats.write_bytes_per_sec = static_cast<double>(sectors_written * 512 - prev.write_bytes) / seconds;
                 }
 
                 break; // 일치하는 장치를 찾았으므로 루프 종료
@@ -276,10 +276,10 @@ void DiskCollector::updateIoStats()
 
 /**
  * @brief 장치 경로에서 장치 이름만 추출합니다.
- * 
+ *
  * 다양한 형식의 장치 경로(/dev/mapper/vg-lv, /dev/md0, /dev/nvme0n1p1 등)에서
  * 실제 장치 이름만 추출합니다. 필요시 Linux 시스템의 디바이스 매핑 정보도 확인합니다.
- * 
+ *
  * @param device_path 장치 경로 (예: /dev/sda, /dev/mapper/vg-lv)
  * @return string 추출된 장치 이름 (예: sda, dm-0, md0)
  */
@@ -333,10 +333,10 @@ string DiskCollector::extractDeviceName(const string &device_path)
 
 /**
  * @brief 파티션 이름으로부터 부모 디스크 이름을 추출합니다.
- * 
+ *
  * 파티션 이름(예: sda1, nvme0n1p1, mmcblk0p1)을 분석하여 해당 파티션이
  * 속한 부모 디스크 이름(예: sda, nvme0n1, mmcblk0)을 반환합니다.
- * 
+ *
  * @param partition 파티션 이름
  * @return string 부모 디스크 이름
  */
@@ -397,7 +397,7 @@ string DiskCollector::getParentDisk(const string &partition)
 
 /**
  * @brief 디스크 정보를 수집합니다.
- * 
+ *
  * 주기적으로 호출되어 시스템의 디스크 정보를 업데이트합니다.
  * 디스크 구성이 변경된 경우 전체 디스크 정보를 다시 수집하고,
  * 그렇지 않은 경우 기존 디스크의 사용량 정보만 업데이트합니다.
@@ -421,7 +421,7 @@ void DiskCollector::collect()
 
 /**
  * @brief 수집된 디스크 통계 정보를 반환합니다.
- * 
+ *
  * @return vector<DiskInfo> 수집된 모든 디스크의 정보
  */
 vector<DiskInfo> DiskCollector::getDiskStats() const
@@ -431,10 +431,10 @@ vector<DiskInfo> DiskCollector::getDiskStats() const
 
 /**
  * @brief 시스템의 디스크 구성 변경을 감지합니다.
- * 
+ *
  * /proc/partitions 파일의 내용을 모니터링하여 디스크나 파티션의
  * 추가/제거와 같은 변경사항을 감지합니다.
- * 
+ *
  * @return bool 디스크 구성이 변경되었으면 true, 그렇지 않으면 false
  */
 bool DiskCollector::detectDiskChanges()
@@ -464,7 +464,7 @@ bool DiskCollector::detectDiskChanges()
 
 /**
  * @brief 스레드 풀의 작업자 스레드 함수입니다.
- * 
+ *
  * 작업 큐에서 태스크를 가져와 실행합니다.
  * 종료 신호가 있거나 작업 큐가 비어있을 때까지 대기합니다.
  */
@@ -503,7 +503,7 @@ void DiskCollector::threadWorker()
 
 /**
  * @brief 작업 큐에 새 태스크를 추가합니다.
- * 
+ *
  * @param task 실행할 함수 객체
  */
 void DiskCollector::addTask(std::function<void()> task)
@@ -517,7 +517,7 @@ void DiskCollector::addTask(std::function<void()> task)
 
 /**
  * @brief 모든 작업이 완료될 때까지 대기합니다.
- * 
+ *
  * 작업 큐가 비어있고 현재 실행 중인 작업이 없을 때까지 대기합니다.
  */
 void DiskCollector::waitForTasks()

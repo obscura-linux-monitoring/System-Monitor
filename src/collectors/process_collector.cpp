@@ -1,7 +1,7 @@
 /**
  * @file process_collector.cpp
  * @brief 시스템에서 실행 중인 프로세스 정보를 수집하고 관리하는 클래스 구현
- * 
+ *
  * ProcessCollector 클래스는 시스템에서 실행 중인 모든 프로세스의 상세 정보를 수집하고,
  * 다양한 기준(CPU 사용량, 메모리 사용량, PID, 이름)으로 정렬하여 제공합니다.
  * 또한 특정 프로세스를 종료하는 기능도 포함하고 있습니다.
@@ -22,7 +22,7 @@ using namespace std;
 
 /**
  * @brief 프로세스 상태 코드를 사람이 읽기 쉬운 텍스트로 변환합니다.
- * 
+ *
  * @param status 프로세스 상태 코드 (예: "R", "S", "I" 등)
  * @return string 사람이 읽기 쉬운 상태 설명
  */
@@ -48,7 +48,7 @@ string ProcessCollector::convertStatus(string_view status) const
 
 /**
  * @brief 지정된 비교 함수를 사용하여 정렬된 프로세스 목록을 반환합니다.
- * 
+ *
  * @tparam Comparator 프로세스를 비교하는 함수 객체 타입
  * @param comp 프로세스 정렬에 사용할 비교 함수 객체
  * @return vector<ProcessInfo> 정렬된 프로세스 정보 벡터
@@ -63,11 +63,11 @@ vector<ProcessInfo> ProcessCollector::getSortedProcesses(Comparator comp) const
 
 /**
  * @brief 시스템의 모든 실행 중인 프로세스 정보를 수집합니다.
- * 
+ *
  * 이 함수는 시스템에서 실행 중인 모든 프로세스의 상세 정보를 수집하여
  * 내부 processes 벡터에 저장합니다. 수집되는 정보는 PID, CPU/메모리 사용량,
  * 시작 시간, 상태, 명령어 등을 포함합니다.
- * 
+ *
  * @throw runtime_error 프로세스 정보에 접근할 수 없는 경우 발생
  */
 void ProcessCollector::collect()
@@ -145,7 +145,8 @@ void ProcessCollector::collect()
         process.threads = proc_info.nlwp;              // 스레드 수
 
         // 프로세스 시작 시간 설정 (boot_time 사용)
-        process.start_time = boot_time + proc_info.start_time / sysconf(_SC_CLK_TCK);
+        unsigned long clk_tck = static_cast<unsigned long>(sysconf(_SC_CLK_TCK));
+        process.start_time = boot_time + static_cast<time_t>(proc_info.start_time / clk_tck);
 
         // CPU 사용량 계산 로직 최적화
         unsigned long process_total_time = proc_info.utime + proc_info.stime;
@@ -164,7 +165,7 @@ void ProcessCollector::collect()
         }
 
         // CPU 시간 (초 단위)
-        process.cpu_time = (proc_info.utime + proc_info.stime) / (float)sysconf(_SC_CLK_TCK);
+        process.cpu_time = static_cast<float>((proc_info.utime + proc_info.stime)) / static_cast<float>(sysconf(_SC_CLK_TCK));
 
         prev_cpu_times[process.pid] = make_pair(process_total_time, total_time);
 
@@ -242,7 +243,7 @@ void ProcessCollector::collect()
 
 /**
  * @brief CPU 사용량을 기준으로 정렬된 모든 프로세스 목록을 반환합니다.
- * 
+ *
  * @return vector<ProcessInfo> CPU 사용량이 높은 순으로 정렬된 프로세스 정보 벡터
  */
 vector<ProcessInfo> ProcessCollector::getProcessesByCpuUsage() const
@@ -253,7 +254,7 @@ vector<ProcessInfo> ProcessCollector::getProcessesByCpuUsage() const
 
 /**
  * @brief 메모리 사용량을 기준으로 정렬된 모든 프로세스 목록을 반환합니다.
- * 
+ *
  * @return vector<ProcessInfo> 메모리 사용량이 높은 순으로 정렬된 프로세스 정보 벡터
  */
 vector<ProcessInfo> ProcessCollector::getProcessesByMemoryUsage() const
@@ -264,7 +265,7 @@ vector<ProcessInfo> ProcessCollector::getProcessesByMemoryUsage() const
 
 /**
  * @brief PID를 기준으로 정렬된 모든 프로세스 목록을 반환합니다.
- * 
+ *
  * @return vector<ProcessInfo> PID가 낮은 순으로 정렬된 프로세스 정보 벡터
  */
 vector<ProcessInfo> ProcessCollector::getProcessesByPid() const
@@ -275,7 +276,7 @@ vector<ProcessInfo> ProcessCollector::getProcessesByPid() const
 
 /**
  * @brief 프로세스 이름을 기준으로 정렬된 모든 프로세스 목록을 반환합니다.
- * 
+ *
  * @return vector<ProcessInfo> 이름 알파벳 순으로 정렬된 프로세스 정보 벡터
  */
 vector<ProcessInfo> ProcessCollector::getProcessesByName() const
@@ -286,7 +287,7 @@ vector<ProcessInfo> ProcessCollector::getProcessesByName() const
 
 /**
  * @brief 지정된 정렬 기준에 따라 정렬된 모든 프로세스 목록을 반환합니다.
- * 
+ *
  * @param sort_by 정렬 기준 (0: CPU 사용량, 1: 메모리 사용량, 2: PID, 3: 이름)
  * @return vector<ProcessInfo> 지정된 기준으로 정렬된 프로세스 정보 벡터
  */
@@ -305,7 +306,7 @@ vector<ProcessInfo> ProcessCollector::getProcesses(int sort_by) const
 
 /**
  * @brief 지정된 PID의 프로세스에 종료 신호(SIGTERM)를 보냅니다.
- * 
+ *
  * @param pid 종료할 프로세스의 ID
  * @return bool 성공 여부 (true: 성공, false: 실패)
  */
@@ -316,9 +317,9 @@ bool ProcessCollector::killProcess(pid_t pid)
 
 /**
  * @brief 메모리 사용량이 높은 상위 N개 프로세스 목록을 반환합니다.
- * 
+ *
  * 전체 목록을 정렬하는 대신 부분 정렬을 사용하여 성능을 향상시킵니다.
- * 
+ *
  * @param count 반환할 프로세스 수
  * @return vector<ProcessInfo> 메모리 사용량 기준 상위 N개 프로세스
  */
@@ -328,7 +329,7 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByMemory(size_t count) cons
 
     // 전체 정렬 대신 부분 정렬 사용 (성능 향상)
     partial_sort(result.begin(),
-                 result.begin() + min(count, result.size()),
+                 result.begin() + static_cast<ptrdiff_t>(min(count, result.size())),
                  result.end(),
                  [](const ProcessInfo &a, const ProcessInfo &b)
                  {
@@ -346,9 +347,9 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByMemory(size_t count) cons
 
 /**
  * @brief CPU 사용량이 높은 상위 N개 프로세스 목록을 반환합니다.
- * 
+ *
  * 전체 목록을 정렬하는 대신 부분 정렬을 사용하여 성능을 향상시킵니다.
- * 
+ *
  * @param count 반환할 프로세스 수
  * @return vector<ProcessInfo> CPU 사용량 기준 상위 N개 프로세스
  */
@@ -357,7 +358,7 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByCpu(size_t count) const
     vector<ProcessInfo> result = processes;
 
     partial_sort(result.begin(),
-                 result.begin() + min(count, result.size()),
+                 result.begin() + static_cast<ptrdiff_t>(min(count, result.size())),
                  result.end(),
                  [](const ProcessInfo &a, const ProcessInfo &b)
                  {
@@ -374,9 +375,9 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByCpu(size_t count) const
 
 /**
  * @brief PID가 낮은 순으로 상위 N개 프로세스 목록을 반환합니다.
- * 
+ *
  * 전체 목록을 정렬하는 대신 부분 정렬을 사용하여 성능을 향상시킵니다.
- * 
+ *
  * @param count 반환할 프로세스 수
  * @return vector<ProcessInfo> PID 기준 상위 N개 프로세스
  */
@@ -384,7 +385,7 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByPid(size_t count) const
 {
     vector<ProcessInfo> result = processes;
     partial_sort(result.begin(),
-                 result.begin() + min(count, result.size()),
+                 result.begin() + static_cast<ptrdiff_t>(min(count, result.size())),
                  result.end(),
                  [](const ProcessInfo &a, const ProcessInfo &b)
                  {
@@ -399,9 +400,9 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByPid(size_t count) const
 
 /**
  * @brief 이름 알파벳 순으로 상위 N개 프로세스 목록을 반환합니다.
- * 
+ *
  * 전체 목록을 정렬하는 대신 부분 정렬을 사용하여 성능을 향상시킵니다.
- * 
+ *
  * @param count 반환할 프로세스 수
  * @return vector<ProcessInfo> 이름 기준 상위 N개 프로세스
  */
@@ -409,7 +410,7 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByName(size_t count) const
 {
     vector<ProcessInfo> result = processes;
     partial_sort(result.begin(),
-                 result.begin() + min(count, result.size()),
+                 result.begin() + static_cast<ptrdiff_t>(min(count, result.size())),
                  result.end(),
                  [](const ProcessInfo &a, const ProcessInfo &b)
                  {
@@ -424,7 +425,7 @@ vector<ProcessInfo> ProcessCollector::getTopProcessesByName(size_t count) const
 
 /**
  * @brief 지정된 정렬 기준에 따라 상위 N개 프로세스 목록을 반환합니다.
- * 
+ *
  * @param sort_by 정렬 기준 (0: CPU 사용량, 1: 메모리 사용량, 2: PID, 3: 이름)
  * @param count 반환할 프로세스 수
  * @return vector<ProcessInfo> 지정된 기준으로 정렬된 상위 N개 프로세스
