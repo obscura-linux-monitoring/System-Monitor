@@ -188,12 +188,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-install_dependencies
-if [ $? -ne 0 ]; then
-    echo "의존성 패키지 설치 실패. 설치를 중단합니다."
-    cleanup
-    exit 1
-fi
+# install_dependencies
+# if [ $? -ne 0 ]; then
+#     echo "의존성 패키지 설치 실패. 설치를 중단합니다."
+#     cleanup
+#     exit 1
+# fi
 
 download_files
 if [ $? -ne 0 ]; then
