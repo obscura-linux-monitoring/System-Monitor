@@ -83,6 +83,8 @@ int main(int argc, char **argv)
     int collectionInterval = 5; // 기본 수집 간격 5초
     /** @brief 서버 데이터 전송 간격 (초) */
     int sendingInterval = 5; // 기본 전송 간격 5초
+    /** @brief 로그 전송 간격 (초) */
+    int logSendingInterval = 5; // 기본 로그 전송 간격 5초
 
     /** @brief 서버 연결 정보 */
     ServerInfo serverInfo;
@@ -129,6 +131,7 @@ int main(int argc, char **argv)
                  << "  -s, --server         서버 URL (예: @http://127.0.0.1:80)\n"
                  << "  -c, --collection     수집 간격 (초, 기본값: 5)\n"
                  << "  -t, --transmission   전송 간격 (초, 기본값: 5)\n"
+                 << "  -l, --log            로그 전송 간격 (초, 기본값: 5)\n"
                  << "  -h, --help          이 도움말 표시\n";
             return 0;
         }
@@ -159,6 +162,21 @@ int main(int argc, char **argv)
                 {
                     cerr << "잘못된 전송 간격 값입니다. 기본값(5초)을 사용합니다.\n";
                     sendingInterval = 5;
+                }
+            }
+        }
+        else if (arg == "-l" || arg == "--log")
+        {
+            if (i + 1 < argc)
+            {
+                try
+                {
+                    logSendingInterval = stoi(argv[++i]);
+                }
+                catch (const exception &e)
+                {
+                    cerr << "잘못된 로그 전송 간격 값입니다. 기본값(5초)을 사용합니다.\n";
+                    logSendingInterval = 5;
                 }
             }
         }
@@ -204,6 +222,9 @@ int main(int argc, char **argv)
     {
         try
         {
+            // 원격 로깅 활성화
+            Logger::initWithRemoteLogging(serverInfo, systemKey, logSendingInterval);
+
             /** @brief 서버 클라이언트 초기화 및 연결 */
             systemClient = make_unique<SystemClient>(serverInfo, systemKey, collectionInterval, sendingInterval, user_id);
             systemClient->connect();
