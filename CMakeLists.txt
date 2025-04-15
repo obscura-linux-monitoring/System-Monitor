@@ -55,7 +55,7 @@ file(GLOB_RECURSE SOURCES
     "${PROJECT_SOURCE_DIR}/src/ui/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/models/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/utils/*.cpp"
-    "${PROJECT_SOURCE_DIR}/src/network/${EXECUTABLE_NAME}/*.cpp"
+    "${PROJECT_SOURCE_DIR}/src/network/client/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/network/common/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/log/*.cpp"
     "${PROJECT_SOURCE_DIR}/src/commands/*.cpp"

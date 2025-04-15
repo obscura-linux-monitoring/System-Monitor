@@ -10,6 +10,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <memory>
+#include "log/log_capture.h"
+#include "network/client/log_sender.h"
 
 using namespace std;
 
@@ -31,12 +33,7 @@ public:
      * @brief 로거 종료 함수
      * @details 로거를 종료하고 모든 버퍼를 비우고 파일을 닫습니다.
      */
-    static void shutdown() {
-        if (s_logger) {
-            s_logger->flush();
-            spdlog::shutdown();
-        }
-    }
+    static void shutdown();
 
     /**
      * @brief 로거 인스턴스를 반환하는 정적 메서드
@@ -44,11 +41,31 @@ public:
      */
     static shared_ptr<spdlog::logger> &getLogger() { return s_logger; }
 
+    /**
+     * @brief 원격 로깅 초기화 함수
+     * @param serverInfo 원격 로깅 서버 정보
+     * @param nodeId 노드 식별자
+     * @param intervalSeconds 로그 전송 간격 (초)
+     */
+    static void initWithRemoteLogging(const ServerInfo &serverInfo, const string &nodeId, int intervalSeconds);
+
 private:
     /**
      * @brief spdlog 로거의 정적 인스턴스
      */
     static shared_ptr<spdlog::logger> s_logger;
+    /**
+     * @brief 로그 전송 쓰레드
+     */
+    static unique_ptr<LogSender> s_logSender;
+    /**
+     * @brief 로그 큐
+     */
+    static ThreadSafeQueue<LogType> s_logQueue;
+    /**
+     * @brief 원격 로깅 활성화 여부
+     */
+    static bool s_isRemoteLoggingEnabled;
 };
 
 /**

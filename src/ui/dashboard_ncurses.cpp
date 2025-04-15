@@ -4,6 +4,8 @@
  * @author 시스템 모니터링 팀
  */
 
+#include "log/logger.h"
+#include <term.h>
 #include "ui/dashboard_ncurses.h"
 #include "collectors/cpu_collector.h"
 #include "collectors/memory_collector.h"
@@ -19,8 +21,6 @@
 #include <ncursesw/curses.h>
 #include <locale.h>
 #include <stdlib.h>
-#include <term.h>
-#include "log/logger.h"
 
 /**
  * @brief DashboardNcurses 클래스의 생성자
