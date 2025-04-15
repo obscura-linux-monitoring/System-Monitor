@@ -39,6 +39,7 @@ void CommandExecutorFactory::initialize()
         executors_["c"] = make_unique<CommandTypeCExecutor>();
         executors_["d"] = make_unique<CommandTypeDExecutor>();
         executors_["e"] = make_unique<CommandTypeEExecutor>();
+        executors_["f"] = make_unique<CommandTypeFExecutor>();
         initialized_ = true;
     }
 }
