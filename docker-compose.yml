@@ -1,0 +1,40 @@
+version: '3.3'
+
+services:
+  system_monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: system_monitor
+    container_name: system_monitor
+    restart: unless-stopped
+    privileged: true
+    pid: host
+    network_mode: host
+    security_opt:
+      - apparmor:unconfined
+      - seccomp:unconfined
+    cap_add:
+      - ALL
+    volumes:
+      # proc 마운트 제거하고 다른 볼륨만 유지
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/os-release:/etc/os-release:ro
+      - /etc/hostname:/etc/hostname:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /etc:/etc:ro
+      - /var/log:/var/log:ro
+      - /run/systemd:/run/systemd:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    environment:
+      - TZ=Asia/Seoul
+      - SERVER_ADDR=127.0.0.1:8087
+      - COLLECTION_INTERVAL=2
+      - TRANSFER_INTERVAL=2
+      - SYSTEM_KEY=3fd0c4da2338a62760129b783435ed79218720eaa1298593a655db8e5d0ac22fd24ad0a87494785548db3ed5d5f20cf36459b4baf295eeb1a4461e7c5b4a4096
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

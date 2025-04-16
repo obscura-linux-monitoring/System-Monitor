@@ -1,0 +1,16 @@
+build/
+bin/
+docs/
+.github/
+.gitignore
+.git/
+.vscode/
+.idea/
+.DS_Store
+.docs.sh
+.build.sh
+.docker-build.sh
+data.json
+compile_commands.json
+README.md
+Doxyfile.in
