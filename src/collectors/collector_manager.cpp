@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include "log/logger.h"
 
 using namespace std;
 
@@ -425,9 +426,10 @@ void CollectorManager::collectDataParallel()
     auto collectDuration = chrono::duration_cast<chrono::milliseconds>(collectEndTime - collectStartTime);
 
     // 시작 및 종료 시간, 소요 시간 출력
-    cout << "[수집] 시작: " << startTimestamp
-         << ", 종료: " << getCurrentTime()
-         << ", 소요 시간: " << collectDuration.count() << "ms" << endl;
+    char buffer[100];
+    snprintf(buffer, sizeof(buffer), "[수집] 시작: %s, 종료: %s, 소요 시간: %ldms", startTimestamp.c_str(), getCurrentTime().c_str(), collectDuration.count());
+    cout << buffer << endl;
+    LOG_INFO(buffer);
 }
 
 /**

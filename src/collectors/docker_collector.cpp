@@ -529,7 +529,7 @@ void DockerCollector::collect()
                             }
                             
                             // 최적화된 API 요청 URL
-                            string statsUrl = "http://localhost/containers/" + containerId + "/stats?stream=false&one-shot=true";
+                            string statsUrl = "http://localhost/containers/" + containerId + "/stats?stream=false";
                             curl_easy_setopt(statsCurl, CURLOPT_URL, statsUrl.c_str());
                             curl_easy_setopt(statsCurl, CURLOPT_WRITEDATA, &statsBuffer);
                             
@@ -549,11 +549,14 @@ void DockerCollector::collect()
                                 // 시스템 CPU 사용량을 안전하게 처리
                                 uint64_t systemDelta = 0;
                                 if (statsRoot["cpu_stats"].contains("system_cpu_usage") && 
-                                    !statsRoot["cpu_stats"]["system_cpu_usage"].is_null() &&
-                                    statsRoot["precpu_stats"].contains("system_cpu_usage") && 
-                                    !statsRoot["precpu_stats"]["system_cpu_usage"].is_null()) {
-                                    systemDelta = statsRoot["cpu_stats"]["system_cpu_usage"].get<uint64_t>() -
-                                                      statsRoot["precpu_stats"]["system_cpu_usage"].get<uint64_t>();
+                                    statsRoot["precpu_stats"].contains("system_cpu_usage")) {
+                                    try {
+                                        uint64_t current_cpu = statsRoot["cpu_stats"]["system_cpu_usage"].get<uint64_t>();
+                                        uint64_t prev_cpu = statsRoot["precpu_stats"]["system_cpu_usage"].get<uint64_t>();
+                                        systemDelta = current_cpu - prev_cpu;
+                                    } catch (const exception& e) {
+                                        systemDelta = 0;
+                                    }
                                 }
 
                                 // CPU 개수를 안전하게 처리
@@ -562,10 +565,17 @@ void DockerCollector::collect()
                                     !statsRoot["cpu_stats"]["online_cpus"].is_null()) {
                                     numCPUs = statsRoot["cpu_stats"]["online_cpus"].get<int>();
                                 }
+                                else
+                                {
+                                }
 
                                 if (systemDelta > 0 && numCPUs > 0)
                                 {
                                     info.cpu_usage = (static_cast<double>(cpuDelta) / static_cast<double>(systemDelta)) * numCPUs * 100.0;
+                                }
+                                else
+                                {
+                                    info.cpu_usage = 0.0;
                                 }
 
                                 // 메모리 사용량 (MB)

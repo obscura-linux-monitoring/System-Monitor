@@ -17,15 +17,6 @@ namespace operations
     {
     public:
         /**
-         * @brief 프로세스 정지 함수
-         *
-         * @param processName 정지할 프로세스 PID
-         * @param result 작업 실행 결과
-         * @return CommandResult 작업 실행 결과
-         */
-        static CommandResult stopProcess(int pid, CommandResult &result);
-
-        /**
          * @brief 프로세스 강제 종료 함수
          *
          * @param processName 종료할 프로세스 PID
@@ -33,6 +24,15 @@ namespace operations
          * @return CommandResult 작업 실행 결과
          */
         static CommandResult killProcess(int pid, CommandResult &result);
+
+        /**
+         * @brief 프로세스 재시작 함수
+         *
+         * @param pid 재시작할 프로세스 PID
+         * @param result 작업 실행 결과
+         * @return CommandResult 작업 실행 결과
+         */
+        static CommandResult restartProcess(int pid, CommandResult &result);
     };
 
 } // namespace operations
