@@ -1086,8 +1086,8 @@ bool ServiceCollector::GetMultipleProperties(sd_bus *bus, const char *service_pa
                         static uint64_t last_cpu_nsec = 0;
 
                         uint64_t current_time = static_cast<uint64_t>(chrono::duration_cast<chrono::nanoseconds>(
-                            chrono::system_clock::now().time_since_epoch())
-                            .count());
+                                                                          chrono::system_clock::now().time_since_epoch())
+                                                                          .count());
 
                         if (last_time > 0 && last_cpu_nsec > 0)
                         {
@@ -1500,56 +1500,46 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
     }
     pclose(pipe);
 
-    // 중요 서비스 상태 정보 추가 수집 (10개 제한)
-    int processedCount = 0;
-    const int maxServices = 10; // 백그라운드에서는 일부 중요 서비스만 처리
-
     for (auto &service : infoResult)
     {
-        if (processedCount >= maxServices)
-            break;
 
-        // 우선순위가 높은 서비스 식별 (예: systemd, ssh, 네트워크 관련)
-        if (service.name.find("systemd") != string::npos ||
-            service.name.find("ssh") != string::npos ||
-            service.name.find("network") != string::npos ||
-            service.name.find("boot") != string::npos)
+        // 간소화된 상세 정보 수집
+        string detailCmd = "systemctl show " + service.name +
+                           ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
+
+        FILE *detailPipe = popen(detailCmd.c_str(), "r");
+        if (detailPipe)
         {
-
-            // 간소화된 상세 정보 수집
-            string detailCmd = "systemctl show " + service.name +
-                               ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
-
-            FILE *detailPipe = popen(detailCmd.c_str(), "r");
-            if (detailPipe)
+            while (fgets(buffer, sizeof(buffer), detailPipe) != nullptr)
             {
-                while (fgets(buffer, sizeof(buffer), detailPipe) != nullptr)
+                string line(buffer);
+                size_t pos = line.find('=');
+                if (pos != string::npos)
                 {
-                    string line(buffer);
-                    size_t pos = line.find('=');
-                    if (pos != string::npos)
+                    string key = line.substr(0, pos);
+                    string value = line.substr(pos + 1);
+
+                    // 줄 끝의 개행 문자 제거
+                    if (!value.empty() && value.back() == '\n')
                     {
-                        string key = line.substr(0, pos);
-                        string value = line.substr(pos + 1);
-
-                        // 줄 끝의 개행 문자 제거
-                        if (!value.empty() && value.back() == '\n')
-                        {
-                            value.pop_back();
-                        }
-
-                        if (key == "Type")
-                            service.type = value;
-                        else if (key == "LoadState")
-                            service.load_state = value;
-                        else if (key == "ActiveState")
-                            service.active_state = value;
-                        else if (key == "SubState")
-                            service.sub_state = value;
+                        value.pop_back();
                     }
+
+                    if (key == "Type")
+                        service.type = value;
+                    else if (key == "LoadState")
+                        service.load_state = value;
+                    else if (key == "ActiveState")
+                        service.active_state = value;
+                    else if (key == "SubState")
+                        service.sub_state = value;
                 }
-                pclose(detailPipe);
-                processedCount++;
+            }
+
+            int status = pclose(detailPipe);
+            if (status != 0)
+            {
+                LOG_ERROR("명령 실행 실패: {} (상태: {})", detailCmd, status);
             }
         }
     }
