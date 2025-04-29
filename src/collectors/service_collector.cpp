@@ -1502,11 +1502,62 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
 
     for (auto &service : infoResult)
     {
+        // 템플릿 서비스인지 확인 (@가 포함되어 있는지)
+        bool isTemplateService = (service.name.find('@') != string::npos);
 
-        // 간소화된 상세 정보 수집
-        string detailCmd = "systemctl show " + service.name +
-                           ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
+        string detailCmd;
+        if (isTemplateService)
+        {
+            // 템플릿 서비스는 인스턴스 목록을 먼저 확인
+            string instanceCmd = "systemctl list-units " + service.name + "*.service --no-legend --no-pager 2>/dev/null";
+            FILE *instancePipe = popen(instanceCmd.c_str(), "r");
+            if (instancePipe)
+            {
+                char instanceBuffer[512];
+                // 첫 번째 인스턴스만 가져와서 처리 (있는 경우)
+                if (fgets(instanceBuffer, sizeof(instanceBuffer), instancePipe) != nullptr)
+                {
+                    string instanceLine(instanceBuffer);
+                    istringstream instanceIss(instanceLine);
+                    string fullInstanceName;
+                    instanceIss >> fullInstanceName; // 첫 번째 필드가 전체 인스턴스 이름
 
+                    // 전체 인스턴스 이름이 있으면 이를 사용
+                    if (!fullInstanceName.empty())
+                    {
+                        // .service 확장자는 이미 포함되어 있으므로 제거하지 않음
+                        detailCmd = "systemctl show " + fullInstanceName +
+                                    " -p Type,LoadState,ActiveState,SubState 2>/dev/null";
+                    }
+                    else
+                    {
+                        // 인스턴스가 없으면 원래 템플릿에 대해 정보 수집 시도
+                        detailCmd = "systemctl show " + service.name +
+                                    ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
+                    }
+                }
+                else
+                {
+                    // 인스턴스가 없는 경우 - 기본 정보만 유지하고 계속 진행
+                    pclose(instancePipe);
+                    continue;
+                }
+                pclose(instancePipe);
+            }
+            else
+            {
+                // 인스턴스 목록을 가져올 수 없는 경우 - 기본 정보만 유지하고 계속 진행
+                continue;
+            }
+        }
+        else
+        {
+            // 일반 서비스는 기존 방식으로 처리
+            detailCmd = "systemctl show " + service.name +
+                        ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
+        }
+
+        // 기존 상세 정보 수집 코드는 그대로 유지
         FILE *detailPipe = popen(detailCmd.c_str(), "r");
         if (detailPipe)
         {
