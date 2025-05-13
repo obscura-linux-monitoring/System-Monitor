@@ -65,7 +65,13 @@ void to_json(json &j, const CpuInfo &cpu)
         {"has_avx", cpu.has_avx},
         {"has_avx2", cpu.has_avx2},
         {"has_neon", cpu.has_neon},
-        {"has_sve", cpu.has_sve}};
+        {"has_sve", cpu.has_sve},
+        {"l1_cache_size", cpu.l1_cache_size},
+        {"l2_cache_size", cpu.l2_cache_size},
+        {"l3_cache_size", cpu.l3_cache_size},
+        {"base_clock_speed", cpu.base_clock_speed},
+        {"max_clock_speed", cpu.max_clock_speed},
+        {"min_clock_speed", cpu.min_clock_speed}};
 }
 
 /**

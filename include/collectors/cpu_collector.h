@@ -41,6 +41,16 @@ private:
      */
     void collectCpuInfo();
 
+    /**
+     * @brief L1, L2, L3 캐시 정보 수집 함수
+     */
+    void collectCacheInfo();
+
+    /**
+     * @brief 기본 속도 정보를 위해 lscpu 사용
+     */
+    void getBaseCpuSpeed();
+
 public:
     /**
      * @brief CPU 정보를 수집하는 메서드

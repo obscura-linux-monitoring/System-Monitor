@@ -45,4 +45,10 @@ struct CpuInfo
     bool has_avx2;              ///< AVX2 지원 여부
     bool has_neon;              ///< NEON 지원 여부
     bool has_sve;               ///< SVE 지원 여부
+    int l1_cache_size;          ///< L1 캐시 크기 (KB)
+    int l2_cache_size;          ///< L2 캐시 크기 (KB)
+    int l3_cache_size;          ///< L3 캐시 크기 (KB)
+    float base_clock_speed;     ///< 기본 클럭 속도 (MHz)
+    float max_clock_speed;      ///< 최대 클럭 속도 (MHz)
+    float min_clock_speed;      ///< 최소 클럭 속도 (MHz)
 };

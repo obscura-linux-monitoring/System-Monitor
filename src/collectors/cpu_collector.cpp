@@ -57,6 +57,8 @@ CPUCollector::CPUCollector()
     last_temp_read_time = 0;
 
     collectCpuInfo();
+    collectCacheInfo();
+    getBaseCpuSpeed();
 }
 
 /**
@@ -434,5 +436,129 @@ CPUCollector::~CPUCollector()
     {
         sensors_cleanup();
         sensors_initialized = false;
+    }
+}
+
+void CPUCollector::collectCacheInfo()
+{
+    // L1, L2, L3 캐시 크기를 저장할 변수
+    cpuInfo.l1_cache_size = 0;
+    cpuInfo.l2_cache_size = 0;
+    cpuInfo.l3_cache_size = 0;
+
+    // /sys/devices/system/cpu/cpu0/cache/ 디렉토리에서 캐시 정보 읽기
+    for (int i = 0; i < 4; i++)
+    { // 일반적으로 인덱스 0-3까지 확인
+        string path = "/sys/devices/system/cpu/cpu0/cache/index" + to_string(i);
+
+        // 캐시 레벨 확인
+        FILE *level_file = fopen((path + "/level").c_str(), "r");
+        if (level_file)
+        {
+            int level;
+            fscanf(level_file, "%d", &level);
+            fclose(level_file);
+
+            // 캐시 크기 읽기
+            FILE *size_file = fopen((path + "/size").c_str(), "r");
+            if (size_file)
+            {
+                int size;
+                char unit[3];
+                fscanf(size_file, "%d%2s", &size, unit);
+                fclose(size_file);
+
+                // KB 단위로 변환
+                int size_kb = size;
+                if (strcmp(unit, "M") == 0)
+                {
+                    size_kb *= 1024;
+                }
+
+                // 레벨에 따라 저장
+                if (level == 1)
+                {
+                    cpuInfo.l1_cache_size = size_kb;
+                }
+                else if (level == 2)
+                {
+                    cpuInfo.l2_cache_size = size_kb;
+                }
+                else if (level == 3)
+                {
+                    cpuInfo.l3_cache_size = size_kb;
+                }
+            }
+        }
+    }
+}
+
+void CPUCollector::getBaseCpuSpeed()
+{
+    // 기존 코드 유지 (min, max MHz 수집)
+    FILE *fp = popen("lscpu | grep 'CPU max MHz\\|CPU min MHz'", "r");
+    if (fp != NULL)
+    {
+        char line[256];
+        while (fgets(line, sizeof(line), fp))
+        {
+            if (strstr(line, "CPU max MHz"))
+            {
+                float mhz;
+                if (sscanf(line, "CPU max MHz: %f", &mhz) == 1)
+                {
+                    cpuInfo.max_clock_speed = mhz;
+                }
+            }
+            else if (strstr(line, "CPU min MHz"))
+            {
+                float mhz;
+                if (sscanf(line, "CPU min MHz: %f", &mhz) == 1)
+                {
+                    cpuInfo.min_clock_speed = mhz;
+                }
+            }
+        }
+        pclose(fp);
+    }
+
+    // 기본 클럭 속도 수집 (dmidecode 사용)
+    FILE *base_fp = popen("sudo dmidecode -t processor | grep 'Current Speed'", "r");
+    if (base_fp != NULL)
+    {
+        char line[256];
+        if (fgets(line, sizeof(line), base_fp))
+        {
+            float ghz;
+            if (sscanf(line, "Current Speed: %f GHz", &ghz) == 1)
+            {
+                cpuInfo.base_clock_speed = ghz * 1000; // GHz를 MHz로 변환
+            }
+        }
+        pclose(base_fp);
+    }
+
+    // 백업 방법: base_clock_speed가 설정되지 않았다면 /proc/cpuinfo의 모델 이름에서 추출 시도
+    if (cpuInfo.base_clock_speed == 0.0f)
+    {
+        FILE *proc_fp = fopen("/proc/cpuinfo", "r");
+        if (proc_fp != NULL)
+        {
+            char line[1024];
+            while (fgets(line, sizeof(line), proc_fp))
+            {
+                if (strstr(line, "model name"))
+                {
+                    // 모델 이름에서 GHz 추출 시도 (예: "Intel(R) Core(TM) i7-9700K @ 3.60GHz")
+                    float ghz;
+                    if (strstr(line, "GHz") && sscanf(strstr(line, "@"), "@ %f", &ghz) == 1)
+                    {
+                        cpuInfo.base_clock_speed = ghz * 1000; // GHz를 MHz로 변환
+                        break;
+                    }
+                }
+            }
+            fclose(proc_fp);
+        }
     }
 }
