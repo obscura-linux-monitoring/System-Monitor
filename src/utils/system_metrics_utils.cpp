@@ -37,7 +37,10 @@ void to_json(json &j, const SystemInfo &system)
         {"os_kernel_version", system.os_kernel_version},
         {"os_architecture", system.os_architecture},
         {"uptime", system.uptime},
-        {"boot_time", system.boot_time}};
+        {"boot_time", system.boot_time},
+        {"total_processes", system.total_processes},
+        {"total_threads", system.total_threads},
+        {"total_file_descriptors", system.total_file_descriptors}};
 }
 
 /**

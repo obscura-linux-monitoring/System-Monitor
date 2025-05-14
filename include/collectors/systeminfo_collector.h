@@ -27,6 +27,27 @@ private:
      */
     SystemInfo system_info;
 
+    /**
+     * @brief 프로세스 수 카운트
+     *
+     * @return unsigned int 프로세스 수
+     */
+    unsigned int countProcesses();
+
+    /**
+     * @brief 스레드 수 카운트
+     *
+     * @return unsigned int 스레드 수
+     */
+    unsigned int countThreads();
+
+    /**
+     * @brief 파일 디스크립터 수 카운트
+     *
+     * @return unsigned int 파일 디스크립터 수
+     */
+    unsigned int countFileDescriptors();
+
 public:
     /**
      * @brief 기본 생성자

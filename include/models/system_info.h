@@ -30,4 +30,10 @@ struct SystemInfo
     time_t uptime;
     /** @brief 시스템 부팅 시간 (Unix 타임스탬프) */
     time_t boot_time;
+    /** @brief 시스템 전체 프로세스 갯수 */
+    unsigned int total_processes;
+    /** @brief 시스템 전체 스레드 갯수 */
+    unsigned int total_threads;
+    /** @brief 시스템 전체 열린 파일 디스크립터 갯수 */
+    unsigned int total_file_descriptors;
 };
