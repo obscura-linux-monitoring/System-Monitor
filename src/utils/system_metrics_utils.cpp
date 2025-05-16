@@ -95,7 +95,13 @@ void to_json(json &j, const MemoryInfo &memory)
         {"swap_total", memory.swap_total},
         {"swap_used", memory.swap_used},
         {"swap_free", memory.swap_free},
-        {"usage_percent", memory.usage_percent}};
+        {"usage_percent", memory.usage_percent},
+        {"data_rate", memory.data_rate},
+        {"total_slot_count", memory.total_slot_count},
+        {"using_slot_count", memory.using_slot_count},
+        {"form_factor", memory.form_factor},
+        {"paged_pool_size", memory.paged_pool_size},
+        {"non_paged_pool_size", memory.non_paged_pool_size}};
 }
 
 /**
