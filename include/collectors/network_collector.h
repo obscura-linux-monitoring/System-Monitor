@@ -33,14 +33,22 @@ private:
     chrono::steady_clock::time_point last_collect_time;
 
     /**
-     * @brief 인터페이스의 IP 주소를 얻는 함수
+     * @brief 인터페이스의 IPv4 주소를 얻는 함수
      *
      * @param sock 네트워크 소켓 디스크립터
      * @param if_name 인터페이스 이름
      * @return IP 주소 문자열, 실패 시 빈 문자열 반환
      */
-    string getIPAddress(int sock, const string &if_name);
+    string getIPv4Address(int sock, const string &if_name);
 
+    /**
+     * @brief 인터페이스의 IPv6 주소를 얻는 함수
+     *
+     * @param sock 네트워크 소켓 디스크립터
+     * @param if_name 인터페이스 이름
+     * @return IPv6 주소 문자열, 실패 시 빈 문자열 반환
+     */
+    string getIPv6Address(int sock, const string &if_name);
     /**
      * @brief 인터페이스의 MAC 주소를 얻는 함수
      *
@@ -73,6 +81,14 @@ private:
      * @return MTU 값, 실패 시 0 반환
      */
     int getInterfaceMTU(int sock, const string &if_name);
+
+    /**
+     * @brief 인터페이스의 연결 타입을 얻는 함수
+     *
+     * @param if_name 인터페이스 이름
+     * @return 인터페이스 연결 타입 (예: ethernet, wifi)
+     */
+    string getConnectionType(const string &if_name);
 
 public:
     /**

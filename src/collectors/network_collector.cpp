@@ -16,6 +16,10 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <cstring>
+#include <sys/stat.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 using namespace std;
 
@@ -23,7 +27,7 @@ using namespace std;
  * @brief NetworkCollector 클래스의 생성자
  * @details 마지막 수집 시간을 현재 시간으로 초기화합니다.
  */
-NetworkCollector::NetworkCollector() : last_collect_time(std::chrono::steady_clock::now()) {}
+NetworkCollector::NetworkCollector() : last_collect_time(chrono::steady_clock::now()) {}
 
 /**
  * @brief 시스템의 모든 네트워크 인터페이스 정보를 수집합니다.
@@ -34,8 +38,8 @@ NetworkCollector::NetworkCollector() : last_collect_time(std::chrono::steady_clo
 void NetworkCollector::collect()
 {
     // 현재 시간 측정으로 정확한 바이트/초 계산
-    auto current_time = std::chrono::steady_clock::now();
-    float time_diff = std::chrono::duration<float>(current_time - last_collect_time).count();
+    auto current_time = chrono::steady_clock::now();
+    float time_diff = chrono::duration<float>(current_time - last_collect_time).count();
     last_collect_time = current_time;
 
     // 소켓 생성 (인터페이스 정보 얻기 위함)
@@ -89,11 +93,13 @@ void NetworkCollector::collect()
         iss >> drop_sent;    // dropped
 
         // IP, MAC, 상태, 속도, MTU 정보 가져오기
-        string ip_address = getIPAddress(sock, if_name);
+        string ipv4_address = getIPv4Address(sock, if_name);
+        string ipv6_address = getIPv6Address(sock, if_name);
         string mac_address = getMACAddress(if_name);
         string status = getInterfaceStatus(if_name);
         uint64_t speed = getInterfaceSpeed(if_name);
         int mtu = getInterfaceMTU(sock, if_name);
+        string connection_type = getConnectionType(if_name);
 
         // 이전 데이터가 있는지 확인
         auto it = interfaces.find(if_name);
@@ -122,18 +128,21 @@ void NetworkCollector::collect()
             interface.tx_dropped = drop_sent;
 
             // 추가 정보 업데이트
-            interface.ip = ip_address;
+            interface.ipv4 = ipv4_address;
+            interface.ipv6 = ipv6_address;
             interface.mac = mac_address;
             interface.status = status;
             interface.speed = speed;
             interface.mtu = mtu;
+            interface.connection_type = connection_type;
         }
         else
         {
             // 새로운 인터페이스 초기화 (새 구조체에 맞게 수정)
             NetworkInterface new_interface;
             new_interface.interface = if_name;
-            new_interface.ip = ip_address;
+            new_interface.ipv4 = ipv4_address;
+            new_interface.ipv6 = ipv6_address;
             new_interface.mac = mac_address;
             new_interface.status = status;
             new_interface.speed = speed;
@@ -148,7 +157,7 @@ void NetworkCollector::collect()
             new_interface.tx_errors = errs_sent;
             new_interface.rx_dropped = drop_recv;
             new_interface.tx_dropped = drop_sent;
-
+            new_interface.connection_type = connection_type;
             interfaces[if_name] = new_interface;
         }
     }
@@ -157,12 +166,12 @@ void NetworkCollector::collect()
 }
 
 /**
- * @brief 지정된 네트워크 인터페이스의 IP 주소를 반환합니다.
+ * @brief 지정된 네트워크 인터페이스의 IPv4 주소를 반환합니다.
  * @param sock 시스템 호출에 사용할 소켓 디스크립터
  * @param if_name 네트워크 인터페이스 이름
  * @return 인터페이스의 IP 주소 (문자열), 할당된 IP가 없거나 오류 시 빈 문자열 반환
  */
-string NetworkCollector::getIPAddress(int sock, const string &if_name)
+string NetworkCollector::getIPv4Address(int sock, const string &if_name)
 {
     struct ifreq ifr;
     ifr.ifr_addr.sa_family = AF_INET;
@@ -174,6 +183,41 @@ string NetworkCollector::getIPAddress(int sock, const string &if_name)
     }
 
     return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+}
+
+/**
+ * @brief 지정된 네트워크 인터페이스의 IPv6 주소를 반환합니다.
+ * @param sock 시스템 호출에 사용할 소켓 디스크립터
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 IPv6 주소 (문자열), 할당된 IP가 없거나 오류 시 빈 문자열 반환
+ */
+string NetworkCollector::getIPv6Address(int sock, const string &if_name)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    char addr_buf[INET6_ADDRSTRLEN] = {0};
+
+    if (getifaddrs(&ifaddr) == -1)
+        return "";
+
+    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
+    {
+        if (ifa->ifa_addr == nullptr)
+            continue;
+        if (if_name != ifa->ifa_name)
+            continue;
+        if (ifa->ifa_addr->sa_family == AF_INET6)
+        {
+            struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+            // Link-local 주소는 fe80::로 시작, 필요에 따라 제외 가능
+            if (inet_ntop(AF_INET6, &sin6->sin6_addr, addr_buf, sizeof(addr_buf)))
+            {
+                freeifaddrs(ifaddr);
+                return string(addr_buf);
+            }
+        }
+    }
+    freeifaddrs(ifaddr);
+    return "";
 }
 
 /**
@@ -284,4 +328,23 @@ vector<NetworkInterface> NetworkCollector::getInterfacesToVector() const
         result.push_back(pair.second);
     }
     return result;
+}
+
+/**
+ * @brief 지정된 네트워크 인터페이스의 연결 타입을 반환합니다.
+ * @param if_name 네트워크 인터페이스 이름
+ * @return 인터페이스의 연결 타입 (예: ethernet, wifi), 오류 시 빈 문자열 반환
+ */
+string NetworkCollector::getConnectionType(const string &if_name)
+{
+    struct stat st;
+    string wireless_path = "/sys/class/net/" + if_name + "/wireless";
+    if (stat(wireless_path.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+    {
+        return "wifi";
+    }
+    else
+    {
+        return "ethernet";
+    }
 }

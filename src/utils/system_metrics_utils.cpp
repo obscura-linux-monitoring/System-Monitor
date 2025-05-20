@@ -166,7 +166,8 @@ void to_json(json &j, const NetworkInterface &network)
 {
     j = {
         {"interface", network.interface},
-        {"ip", network.ip},
+        {"ipv4", network.ipv4},
+        {"ipv6", network.ipv6},
         {"mac", network.mac},
         {"status", network.status},
         {"speed", network.speed},
@@ -180,7 +181,8 @@ void to_json(json &j, const NetworkInterface &network)
         {"rx_dropped", network.rx_dropped},
         {"tx_dropped", network.tx_dropped},
         {"rx_bytes_per_sec", network.rx_bytes_per_sec},
-        {"tx_bytes_per_sec", network.tx_bytes_per_sec}};
+        {"tx_bytes_per_sec", network.tx_bytes_per_sec},
+        {"connection_type", network.connection_type}};
 }
 
 /**

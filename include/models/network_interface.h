@@ -15,7 +15,8 @@ using namespace std;
 struct NetworkInterface
 {
     string interface;       /**< 네트워크 인터페이스 이름 (예: eth0, wlan0) */
-    string ip;              /**< 인터페이스의 IP 주소 */
+    string ipv4;            /**< 인터페이스의 IPv4 주소 */
+    string ipv6;            /**< 인터페이스의 IPv6 주소 */
     string mac;             /**< 인터페이스의 MAC(물리적) 주소 */
     string status;          /**< 인터페이스의 현재 상태 (예: up, down) */
     uint64_t speed;         /**< 인터페이스의 속도 (Mbps) */
@@ -30,4 +31,5 @@ struct NetworkInterface
     uint64_t tx_dropped;    /**< 전송 중 드롭된 패킷 수 */
     float rx_bytes_per_sec; /**< 초당 수신 바이트 수 (현재 대역폭 사용률) */
     float tx_bytes_per_sec; /**< 초당 전송 바이트 수 (현재 대역폭 사용률) */
+    string connection_type; /**< 인터페이스의 연결 타입 (예: ethernet, wifi) */
 };
