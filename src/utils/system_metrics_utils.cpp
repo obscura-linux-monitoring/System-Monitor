@@ -149,7 +149,11 @@ void to_json(json &j, const DiskInfo &disk)
         {"inodes_free", disk.inodes_free},
         {"io_stats", disk.io_stats},
         {"error_flag", disk.error_flag},
-        {"error_message", disk.error_message}};
+        {"error_message", disk.error_message},
+        {"model_name", disk.model_name},
+        {"type", disk.type},
+        {"is_system_disk", disk.is_system_disk},
+        {"is_page_file_disk", disk.is_page_file_disk}};
 }
 
 /**

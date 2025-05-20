@@ -65,4 +65,8 @@ struct DiskInfo
     IoStats io_stats;       ///< 디스크 I/O 통계 정보
     bool error_flag;        ///< 오류 발생 여부 플래그
     string error_message;   ///< 오류 발생 시 오류 메시지
+    string model_name;      ///< 모델 이름
+    string type;            ///< 디스크 유형
+    bool is_system_disk;    ///< 시스템 디스크 여부
+    bool is_page_file_disk; ///< 페이지 파일 디스크 여부
 };

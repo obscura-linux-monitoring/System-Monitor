@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <set>
 
 using namespace std;
 
@@ -69,6 +70,35 @@ void DiskCollector::collectDiskInfo()
 {
     disk_stats.clear();
 
+    // 루트 디바이스 추출
+    string root_device;
+    ifstream mounts_file("/proc/mounts");
+    string mline;
+    while (getline(mounts_file, mline))
+    {
+        istringstream miss(mline);
+        string mdevice, mmount_point, mfs_type;
+        miss >> mdevice >> mmount_point >> mfs_type;
+        if (mmount_point == "/")
+        {
+            root_device = mdevice;
+            break;
+        }
+    }
+
+    // /proc/swaps에서 스왑 디바이스 목록 추출
+    set<string> swap_devices;
+    ifstream swaps_file("/proc/swaps");
+    string sline;
+    getline(swaps_file, sline); // 첫 줄은 헤더
+    while (getline(swaps_file, sline))
+    {
+        istringstream siss(sline);
+        string sdevice;
+        siss >> sdevice;
+        swap_devices.insert(sdevice);
+    }
+
     // /proc/mounts 파일에서 마운트된 디스크 목록 읽기
     ifstream mounts("/proc/mounts");
     if (!mounts.is_open())
@@ -92,6 +122,42 @@ void DiskCollector::collectDiskInfo()
             disk_info.device = device;
             disk_info.mount_point = mount_point;
             disk_info.filesystem_type = fs_type;
+
+            // 파티션명에서 디스크명 추출
+            string device_name = device.substr(5);         // "/dev/" 이후만 추출 ("sda2" 등)
+            string disk_name = getParentDisk(device_name); // "sda2" → "sda"
+
+            // 모델명 읽기
+            ifstream model_file("/sys/block/" + disk_name + "/device/model");
+            if (model_file.is_open())
+            {
+                getline(model_file, disk_info.model_name);
+            }
+            else
+            {
+                disk_info.model_name = "unknown";
+            }
+            model_file.close();
+
+            // 디스크 타입 (SSD/HDD)
+            ifstream rotational_file("/sys/block/" + disk_name + "/queue/rotational");
+            int rotational = 1;
+            if (rotational_file.is_open())
+            {
+                rotational_file >> rotational;
+            }
+            else
+            {
+                disk_info.type = "unknown";
+            }
+            rotational_file.close();
+            disk_info.type = (rotational == 0) ? "SSD" : "HDD";
+
+            // 시스템 디스크 여부
+            disk_info.is_system_disk = (device == root_device);
+
+            // 스왑 디스크 여부
+            disk_info.is_page_file_disk = (swap_devices.count(device) > 0);
 
             // 초기 상태로 디스크 정보 추가 (사용량 정보는 collect에서 업데이트)
             disk_stats.push_back(disk_info);
