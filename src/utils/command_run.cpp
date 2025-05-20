@@ -1,4 +1,5 @@
 #include "utils/command_run.h"
+#include <stdexcept>
 
 using namespace std;
 
