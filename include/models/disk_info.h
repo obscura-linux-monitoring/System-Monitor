@@ -31,7 +31,6 @@ struct IoStats
     double read_bytes_per_sec;  ///< 초당 읽은 바이트 수
     double write_bytes_per_sec; ///< 초당 쓴 바이트 수
     bool error_flag;            ///< 오류 발생 여부 플래그
-
     /**
      * @brief IoStats 구조체의 기본 생성자
      *
@@ -69,4 +68,5 @@ struct DiskInfo
     string type;            ///< 디스크 유형
     bool is_system_disk;    ///< 시스템 디스크 여부
     bool is_page_file_disk; ///< 페이지 파일 디스크 여부
+    string parent_disk;     ///< 부모 디스크 이름
 };
