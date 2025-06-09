@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v4
     
@@ -25,7 +25,7 @@ jobs:
           pkg-config \
           libcurl4-openssl-dev \
           libsystemd-dev \
-          libsensors4-dev \
+          libsensors-dev \
           nlohmann-json3-dev \
           lm-sensors \
           procps \
@@ -36,7 +36,7 @@ jobs:
           libspdlog-dev \
           zlib1g-dev \
           libstatgrab-dev \
-          libncursesw5-dev \
+          libncurses-dev \
           libjsoncpp-dev \
           libprocps-dev \
           libwebsocketpp-dev \
