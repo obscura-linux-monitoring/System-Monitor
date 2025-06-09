@@ -11,50 +11,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          cmake \
-          git \
-          pkg-config \
-          libcurl4-openssl-dev \
-          libsystemd-dev \
-          libsensors-dev \
-          nlohmann-json3-dev \
-          lm-sensors \
-          procps \
-          net-tools \
-          iproute2 \
-          tzdata \
-          libssl-dev \
-          libspdlog-dev \
-          zlib1g-dev \
-          libstatgrab-dev \
-          libncurses-dev \
-          libjsoncpp-dev \
-          libprocps-dev \
-          libwebsocketpp-dev \
-          libboost-all-dev \
-
-    - name: Create build directory
-      run: mkdir -p build
-
-    - name: Configure CMake
-      run: |
-        cd build
-        cmake ..
-
-    - name: Build
-      run: |
-        cd build
-        make clean
-        make -j$(nproc)
       
     - name: Generate release version
       id: release_version
