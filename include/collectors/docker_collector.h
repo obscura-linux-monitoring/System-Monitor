@@ -70,9 +70,15 @@ private:
     mutex curlPoolMutex;
 
     /**
-     * @brief 컨테이너 정보 접근 동기화 뮤텍스
+     * @brief 캐시 접근 동기화를 위한 뮤텍스
      */
-    mutex containersMutex;
+    mutable mutex statsCacheMutex;
+
+    /**
+     * @brief 컨테이너 정보 접근 동기화 뮤텍스
+     * @details mutable로 선언하여 const 멤버 함수인 getContainers()에서도 lock을 걸 수 있도록 함
+     */
+    mutable mutex containersMutex;
 
     /**
      * @brief curl 핸들 풀 초기화 함수
@@ -130,5 +136,9 @@ public:
     /**
      * @brief 캐시 초기화 메서드
      */
-    void clearCache() { statsCache.clear(); }
+    void clearCache()
+    {
+        lock_guard<mutex> lock(statsCacheMutex);
+        statsCache.clear();
+    }
 };

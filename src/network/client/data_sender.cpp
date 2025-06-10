@@ -202,6 +202,7 @@ void DataSender::stopSending()
  */
 void DataSender::sendLoop(int intervalSeconds)
 {
+    LOG_INFO("데이터 전송 루프 시작");
     while (running_ && isConnected_)
     {
         auto startTime = chrono::steady_clock::now();
@@ -218,12 +219,15 @@ void DataSender::sendLoop(int intervalSeconds)
         auto endTime = chrono::steady_clock::now();
         auto elapsed = chrono::duration_cast<chrono::milliseconds>(endTime - startTime);
         auto sleepTime = chrono::seconds(intervalSeconds) - elapsed;
+        LOG_INFO("데이터 전송 루프 소요 시간: {}ms", elapsed.count());
 
         if (sleepTime > chrono::milliseconds(0))
         {
             this_thread::sleep_for(sleepTime);
         }
     }
+
+    LOG_INFO("데이터 전송 루프 종료");
 }
 
 /**
@@ -238,6 +242,7 @@ void DataSender::sendLoop(int intervalSeconds)
  */
 bool DataSender::sendMetrics(const SystemMetrics &metrics)
 {
+    LOG_INFO("데이터 전송 시작");
     if (!isConnected_)
         return false;
 
@@ -318,6 +323,8 @@ bool DataSender::sendMetrics(const SystemMetrics &metrics)
     {
         LOG_INFO(logMessage);
     }
+
+    LOG_INFO("데이터 전송 종료");
 
     return !ec;
 }

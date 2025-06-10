@@ -244,7 +244,7 @@ void DiskCollector::updateDiskUsage()
     }
 
     // 원본 데이터(disk_stats)에서 복사본(updated_stats)으로 I/O 통계 복사
-    LOG_INFO("I/O 통계 정보 병합 시작 - 업데이트할 디스크 수: " + to_string(updated_stats.size()));
+    // LOG_INFO("I/O 통계 정보 병합 시작 - 업데이트할 디스크 수: " + to_string(updated_stats.size()));
     for (auto &updated_info : updated_stats)
     {
         // 디스크 이름으로 원본 데이터 찾기
@@ -273,7 +273,7 @@ void DiskCollector::updateDiskUsage()
         cerr << "디스크 사용량 정보 수집에 " << duration.count() << "ms 소요됨" << endl;
     }
 
-    LOG_INFO("디스크 정보 업데이트 완료 - 총 디스크 수: " + to_string(disk_stats.size()));
+    // LOG_INFO("디스크 정보 업데이트 완료 - 총 디스크 수: " + to_string(disk_stats.size()));
 }
 
 /**
@@ -295,7 +295,7 @@ void DiskCollector::updateIoStats()
     // 시간 간격이 충분하지 않으면 리턴 (last_collect_time은 업데이트하지 않음)
     if (skip_update)
     {
-        LOG_INFO("시간 간격이 너무 짧아 I/O 통계 업데이트를 건너뜁니다: " + to_string(seconds) + "초");
+        // LOG_INFO("시간 간격이 너무 짧아 I/O 통계 업데이트를 건너뜁니다: " + to_string(seconds) + "초");
         return;
     }
 
@@ -305,7 +305,7 @@ void DiskCollector::updateIoStats()
     // 이전 I/O 통계 저장 - 디스크 이름 기준
     unordered_map<string, IoStats> previous_stats;
 
-    LOG_INFO("디스크 그룹화 및 이전 통계 저장:");
+    // LOG_INFO("디스크 그룹화 및 이전 통계 저장:");
     for (auto &disk_info : disk_stats)
     {
         // 파티션이 속한 부모 디스크 이름 (sda2 -> sda)
@@ -318,7 +318,7 @@ void DiskCollector::updateIoStats()
         if (previous_stats.find(parent_disk) == previous_stats.end())
         {
             previous_stats[parent_disk] = disk_info.io_stats;
-            LOG_INFO("  - 디스크: " + parent_disk + ", 파티션: " + disk_info.device);
+            // LOG_INFO("  - 디스크: " + parent_disk + ", 파티션: " + disk_info.device);
         }
     }
 
@@ -330,7 +330,7 @@ void DiskCollector::updateIoStats()
     }
 
     // /proc/diskstats 파일의 모든 라인을 처리
-    LOG_INFO("/proc/diskstats 파일 내용 확인:");
+    // LOG_INFO("/proc/diskstats 파일 내용 확인:");
     string line;
     while (getline(diskstats, line))
     {
@@ -341,12 +341,12 @@ void DiskCollector::updateIoStats()
         // 처음 3개 필드: major, minor, device name
         iss >> major >> minor >> dev_name;
 
-        LOG_INFO("  - 장치명: " + dev_name);
+        // LOG_INFO("  - 장치명: " + dev_name);
 
         // 장치 이름으로 매칭하여 통계 정보 업데이트 (디스크 단위로만)
         if (disk_groups.find(dev_name) != disk_groups.end())
         {
-            LOG_INFO("디스크 매칭 성공 - " + dev_name);
+            // LOG_INFO("디스크 매칭 성공 - " + dev_name);
 
             // diskstats의 필드 순서대로 읽기
             size_t reads_completed, reads_merged, sectors_read, read_time_ms;
@@ -366,20 +366,20 @@ void DiskCollector::updateIoStats()
             io_stats.io_time = static_cast<time_t>(io_time_ms) / 1000;
             io_stats.io_in_progress = io_in_progress;
 
-            LOG_INFO("디스크 I/O 속도 계산 - 장치: " + dev_name +
-                     ", 시간: " + to_string(seconds) +
-                     ", 이전 값 존재: " + (previous_stats.find(dev_name) != previous_stats.end() ? "예" : "아니오"));
+            // LOG_INFO("디스크 I/O 속도 계산 - 장치: " + dev_name +
+            //          ", 시간: " + to_string(seconds) +
+            //          ", 이전 값 존재: " + (previous_stats.find(dev_name) != previous_stats.end() ? "예" : "아니오"));
 
             if (previous_stats.find(dev_name) != previous_stats.end())
             {
                 const auto &prev = previous_stats[dev_name];
 
                 // 이전 값과 현재 값을 로깅
-                LOG_INFO("디스크 I/O 값 비교 - 장치: " + dev_name +
-                         ", 이전 읽기: " + to_string(prev.reads) +
-                         ", 현재 읽기: " + to_string(reads_completed) +
-                         ", 이전 쓰기: " + to_string(prev.writes) +
-                         ", 현재 쓰기: " + to_string(writes_completed));
+                // LOG_INFO("디스크 I/O 값 비교 - 장치: " + dev_name +
+                //          ", 이전 읽기: " + to_string(prev.reads) +
+                //          ", 현재 읽기: " + to_string(reads_completed) +
+                //          ", 이전 쓰기: " + to_string(prev.writes) +
+                //          ", 현재 쓰기: " + to_string(writes_completed));
 
                 // 카운터 값이 감소했는지 확인 (시스템 재부팅 등으로 인한 경우)
                 if (reads_completed < prev.reads || writes_completed < prev.writes)
@@ -389,7 +389,7 @@ void DiskCollector::updateIoStats()
                     io_stats.writes_per_sec = 0;
                     io_stats.read_bytes_per_sec = 0;
                     io_stats.write_bytes_per_sec = 0;
-                    LOG_INFO("디스크 카운터가 리셋됨 - 장치: " + dev_name);
+                    // LOG_INFO("디스크 카운터가 리셋됨 - 장치: " + dev_name);
                 }
                 else if (seconds > 0)
                 {
@@ -399,16 +399,15 @@ void DiskCollector::updateIoStats()
                     io_stats.read_bytes_per_sec = static_cast<double>(sectors_read * 512 - prev.read_bytes) / seconds;
                     io_stats.write_bytes_per_sec = static_cast<double>(sectors_written * 512 - prev.write_bytes) / seconds;
 
-                    LOG_INFO("디스크 I/O 속도 계산 완료 - 장치: " + dev_name +
-                             ", 읽기/초: " + to_string(io_stats.reads_per_sec) +
-                             ", 쓰기/초: " + to_string(io_stats.writes_per_sec) +
-                             ", 읽기 바이트/초: " + to_string(io_stats.read_bytes_per_sec) +
-                             ", 쓰기 바이트/초: " + to_string(io_stats.write_bytes_per_sec));
+                    // LOG_INFO("디스크 I/O 속도 계산 완료 - 장치: " + dev_name +
+                    //          ", 읽기/초: " + to_string(io_stats.reads_per_sec) +
+                    //          ", 쓰기/초: " + to_string(io_stats.writes_per_sec) +
+                    //          ", 읽기 바이트/
                 }
                 else
                 {
                     // 시간 간격이 0인 경우 (동일 시간에 두 번 호출된 경우)
-                    LOG_INFO("시간 간격이 0 - 장치: " + dev_name + ", 이전 속도 값 유지");
+                    // LOG_INFO("시간 간격이 0 - 장치: " + dev_name + ", 이전 속도 값 유지");
                     // 이전 속도 값 유지 (변경하지 않음)
                 }
             }
@@ -419,7 +418,7 @@ void DiskCollector::updateIoStats()
                 io_stats.writes_per_sec = 0;
                 io_stats.read_bytes_per_sec = 0;
                 io_stats.write_bytes_per_sec = 0;
-                LOG_INFO("이전 통계 정보 없음 - 장치: " + dev_name + ", 초기화");
+                // LOG_INFO("이전 통계 정보 없음 - 장치: " + dev_name + ", 초기화");
             }
 
             // 동일 디스크에 속한 모든 파티션에 동일한 I/O 통계 적용
@@ -428,9 +427,9 @@ void DiskCollector::updateIoStats()
                 disk_ptr->io_stats = io_stats;
 
                 // 디버깅 로깅 추가
-                LOG_INFO("I/O 통계 복사 - 디스크: " + dev_name + ", 파티션: " + disk_ptr->device +
-                         ", 읽기/초: " + to_string(io_stats.reads_per_sec) +
-                         ", 쓰기/초: " + to_string(io_stats.writes_per_sec));
+                // LOG_INFO("I/O 통계 복사 - 디스크: " + dev_name + ", 파티션: " + disk_ptr->device +
+                //          ", 읽기/초: " + to_string(io_stats.reads_per_sec) +
+                //          ", 쓰기/초: " + to_string(io_stats.writes_per_sec));
             }
         }
     }
@@ -456,7 +455,7 @@ void DiskCollector::updateIoStats()
             string device_name = extractDeviceName(disk_info.device);
             if (device_name == dev_name)
             {
-                LOG_INFO("파티션 매칭 성공 - " + disk_info.device + " -> " + dev_name);
+                // LOG_INFO("파티션 매칭 성공 - " + disk_info.device + " -> " + dev_name);
 
                 // diskstats의 필드 읽기 및 처리
                 // (이전 코드와 동일한 로직)
@@ -518,7 +517,7 @@ string DiskCollector::extractDeviceName(const string &device_path)
             }
 
             // 매핑을 찾지 못한 경우
-            LOG_INFO("mapper 장치의 dm 이름을 찾지 못함: " + name);
+            // LOG_INFO("mapper 장치의 dm 이름을 찾지 못함: " + name);
         }
 
         return name;
@@ -625,10 +624,10 @@ void DiskCollector::collect()
  */
 vector<DiskInfo> DiskCollector::getDiskStats() const
 {
-    LOG_INFO("getDiskStats 호출");
+    // LOG_INFO("getDiskStats 호출");
     for (const auto &disk : disk_stats)
     {
-        LOG_INFO("이름: " + disk.device + " 읽기/초: " + to_string(disk.io_stats.reads_per_sec) + " 쓰기/초: " + to_string(disk.io_stats.writes_per_sec) + " 읽기 바이트/초: " + to_string(disk.io_stats.read_bytes_per_sec) + " 쓰기 바이트/초: " + to_string(disk.io_stats.write_bytes_per_sec));
+        // LOG_INFO("이름: " + disk.device + " 읽기/초: " + to_string(disk.io_stats.reads_per_sec) + " 쓰기/초: " + to_string(disk.io_stats.writes_per_sec) + " 읽기 바이트/초: " + to_string(disk.io_stats.read_bytes_per_sec) + " 쓰기 바이트/초: " + to_string(disk.io_stats.write_bytes_per_sec));
     }
     return disk_stats;
 }

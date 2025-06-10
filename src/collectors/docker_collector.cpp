@@ -106,7 +106,7 @@ CURL *DockerCollector::getCurlHandle()
         CURL *handle = curl_easy_init();
         if (!handle)
         {
-            cerr << "심각한 오류: curl 핸들을 초기화할 수 없습니다." << endl;
+            LOG_ERROR("심각한 오류: curl 핸들을 초기화할 수 없습니다.");
             return nullptr; // 오류 처리 필요
         }
         // 기본 옵션 설정
@@ -173,7 +173,8 @@ void DockerCollector::collect()
     if (curl)
     {
         // Docker 소켓에 연결
-        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/json");
+        // curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/json");
+        curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/json?all=true");
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
         CURLcode res = curl_easy_perform(curl);
@@ -205,7 +206,7 @@ void DockerCollector::collect()
                 bool useCache = false;
                 DockerContainerInfo cachedInfo;
                 {
-                    lock_guard<mutex> lock(containersMutex);
+                    lock_guard<mutex> lock(statsCacheMutex);
                     if (statsCache.find(containerId) != statsCache.end() &&
                         chrono::duration_cast<chrono::seconds>(now - statsCache[containerId].timestamp).count() < cacheTTLSeconds)
                     {
@@ -542,14 +543,21 @@ void DockerCollector::collect()
                                 auto statsRoot = json::parse(statsBuffer);
 
                                 // CPU 사용량 계산
-                                uint64_t cpuDelta = statsRoot["cpu_stats"]["cpu_usage"]["total_usage"].get<uint64_t>() -
-                                                    statsRoot["precpu_stats"]["cpu_usage"]["total_usage"].get<uint64_t>();
-                                
+                                uint64_t cpuDelta = 0;
+                                if (statsRoot["cpu_stats"]["cpu_usage"].contains("total_usage") && 
+                                    !statsRoot["cpu_stats"]["cpu_usage"]["total_usage"].is_null() &&
+                                    statsRoot["precpu_stats"]["cpu_usage"].contains("total_usage") &&
+                                    !statsRoot["precpu_stats"]["cpu_usage"]["total_usage"].is_null()) {
+                                    cpuDelta = statsRoot["cpu_stats"]["cpu_usage"]["total_usage"].get<uint64_t>() -
+                                               statsRoot["precpu_stats"]["cpu_usage"]["total_usage"].get<uint64_t>();
+                                }
 
                                 // 시스템 CPU 사용량을 안전하게 처리
                                 uint64_t systemDelta = 0;
                                 if (statsRoot["cpu_stats"].contains("system_cpu_usage") && 
-                                    statsRoot["precpu_stats"].contains("system_cpu_usage")) {
+                                    !statsRoot["cpu_stats"]["system_cpu_usage"].is_null() &&
+                                    statsRoot["precpu_stats"].contains("system_cpu_usage") &&
+                                    !statsRoot["precpu_stats"]["system_cpu_usage"].is_null()) {
                                     try {
                                         uint64_t current_cpu = statsRoot["cpu_stats"]["system_cpu_usage"].get<uint64_t>();
                                         uint64_t prev_cpu = statsRoot["precpu_stats"]["system_cpu_usage"].get<uint64_t>();
@@ -565,9 +573,6 @@ void DockerCollector::collect()
                                     !statsRoot["cpu_stats"]["online_cpus"].is_null()) {
                                     numCPUs = statsRoot["cpu_stats"]["online_cpus"].get<int>();
                                 }
-                                else
-                                {
-                                }
 
                                 if (systemDelta > 0 && numCPUs > 0)
                                 {
@@ -579,32 +584,44 @@ void DockerCollector::collect()
                                 }
 
                                 // 메모리 사용량 (MB)
-                                info.memory_usage = statsRoot["memory_stats"]["usage"].get<uint64_t>();
+                                if (statsRoot["memory_stats"].contains("usage") && 
+                                    !statsRoot["memory_stats"]["usage"].is_null()) {
+                                    info.memory_usage = statsRoot["memory_stats"]["usage"].get<uint64_t>();
+                                } else {
+                                    info.memory_usage = 0;
+                                }
                                 
                                 // 네트워크 I/O
-                                const auto &networks = statsRoot["networks"];
                                 info.network_rx_bytes = 0;
                                 info.network_tx_bytes = 0;
-                                for (auto it = networks.begin(); it != networks.end(); ++it)
-                                {
-                                    info.network_rx_bytes += it.value()["rx_bytes"].get<uint64_t>();
-                                    info.network_tx_bytes += it.value()["tx_bytes"].get<uint64_t>();
+                                if (statsRoot.contains("networks") && statsRoot["networks"].is_object()) {
+                                    const auto &networks = statsRoot["networks"];
+                                    for (auto it = networks.begin(); it != networks.end(); ++it) {
+                                        if (it.value().contains("rx_bytes") && !it.value()["rx_bytes"].is_null())
+                                            info.network_rx_bytes += it.value()["rx_bytes"].get<uint64_t>();
+                                        if (it.value().contains("tx_bytes") && !it.value()["tx_bytes"].is_null())
+                                            info.network_tx_bytes += it.value()["tx_bytes"].get<uint64_t>();
+                                    }
                                 }
 
                                 // 블록 I/O
-                                const auto &blkio = statsRoot["blkio_stats"]["io_service_bytes_recursive"];
-                                for (const auto &io : blkio)
-                                {
-                                    string op = io["op"];
-                                    if (op == "Read")
-                                        info.block_read = io["value"].get<uint64_t>();
-                                    else if (op == "Write")
-                                        info.block_write = io["value"].get<uint64_t>();
+                                if (statsRoot["blkio_stats"].contains("io_service_bytes_recursive") &&
+                                    statsRoot["blkio_stats"]["io_service_bytes_recursive"].is_array()) {
+                                    const auto &blkio = statsRoot["blkio_stats"]["io_service_bytes_recursive"];
+                                    for (const auto &io : blkio) {
+                                        if (io.contains("op") && io.contains("value") && !io["value"].is_null()) {
+                                            string op = io["op"];
+                                            if (op == "Read")
+                                                info.block_read = io["value"].get<uint64_t>();
+                                            else if (op == "Write")
+                                                info.block_write = io["value"].get<uint64_t>();
+                                        }
+                                    }
                                 }
                                 
-                                
                                 // 메모리 제한 및 백분율 추가
-                                if (statsRoot["memory_stats"].contains("limit") && statsRoot["memory_stats"]["limit"].is_number_unsigned())
+                                if (statsRoot["memory_stats"].contains("limit") && statsRoot["memory_stats"]["limit"].is_number_unsigned() &&
+                                    !statsRoot["memory_stats"]["limit"].is_null())
                                 {
                                     info.memory_limit = statsRoot["memory_stats"]["limit"].get<uint64_t>();
                                     
@@ -614,13 +631,22 @@ void DockerCollector::collect()
                                         info.memory_percent = (static_cast<double>(info.memory_usage) / static_cast<double>(info.memory_limit)) * 100.0;
                                     }
                                 }
+                                else
+                                {
+                                    info.memory_limit = 0;
+                                    info.memory_percent = 0.0;
+                                }
                                 
                                 // PID 개수 추가
                                 if (statsRoot.contains("pids_stats") && 
                                     statsRoot["pids_stats"].contains("current") && 
-                                    statsRoot["pids_stats"]["current"].is_number_integer())
+                                    !statsRoot["pids_stats"]["current"].is_null())
                                 {
                                     info.pids = statsRoot["pids_stats"]["current"].get<int>();
+                                }
+                                else
+                                {
+                                    info.pids = 0;
                                 }
                                 
                                 // 네트워크 인터페이스별 정보 업데이트
@@ -635,8 +661,14 @@ void DockerCollector::collect()
                                         {
                                             if (netInfo.network_name == netName)
                                             {
-                                                netInfo.network_rx_bytes = to_string(it.value()["rx_bytes"].get<uint64_t>());
-                                                netInfo.network_tx_bytes = to_string(it.value()["tx_bytes"].get<uint64_t>());
+                                                if (it.value().contains("rx_bytes") && !it.value()["rx_bytes"].is_null())
+                                                    netInfo.network_rx_bytes = to_string(it.value()["rx_bytes"].get<uint64_t>());
+                                                else
+                                                    netInfo.network_rx_bytes = "0";
+                                                if (it.value().contains("tx_bytes") && !it.value()["tx_bytes"].is_null())
+                                                    netInfo.network_tx_bytes = to_string(it.value()["tx_bytes"].get<uint64_t>());
+                                                else
+                                                    netInfo.network_tx_bytes = "0";
                                                 break;
                                             }
                                         }
@@ -649,7 +681,7 @@ void DockerCollector::collect()
                         
                         // 캐시에 정보 저장
                         {
-                            lock_guard<mutex> lock(containersMutex);
+                            lock_guard<mutex> lock(statsCacheMutex);
                             statsCache[containerId] = {now, info};
                             
                         }
@@ -658,12 +690,12 @@ void DockerCollector::collect()
                     }
                     catch (const json::exception &e)
                     {
-                        cerr << "JSON 예외 발생: " << e.what() << endl;
+                        LOG_ERROR("JSON 예외 발생: {}", e.what());
                         return DockerContainerInfo(); // 빈 컨테이너 정보 반환
                     }
                     catch (const exception &e)
                     {
-                        cerr << "예외 발생: " << e.what() << endl;
+                        LOG_ERROR("예외 발생: {}", e.what());
                         return DockerContainerInfo(); // 빈 컨테이너 정보 반환
                     } }));
             }
@@ -690,7 +722,10 @@ void DockerCollector::collect()
         }
 
         returnCurlHandle(curl);
-        this->containers = localcontainers;
+        {
+            lock_guard<mutex> lock(this->containersMutex);
+            this->containers = localcontainers;
+        }
     }
 }
 
@@ -701,5 +736,6 @@ void DockerCollector::collect()
  */
 vector<DockerContainerInfo> DockerCollector::getContainers() const
 {
+    lock_guard<mutex> lock(containersMutex);
     return containers;
 }

@@ -354,7 +354,6 @@ function<void()> CollectorManager::createCollectorTask<ServiceCollector>(
 
         lock_guard<mutex> lock(metricsMutex);
         metrics.services = collector.getServiceInfo();
-
         auto endTime = chrono::steady_clock::now();
         auto duration = chrono::duration_cast<chrono::milliseconds>(endTime - startTime);
         cout << "[서비스 수집] 소요 시간: " << duration.count() << "ms" << endl;
@@ -428,6 +427,7 @@ void CollectorManager::collectDataParallel()
     // 시작 및 종료 시간, 소요 시간 출력
     char buffer[100];
     snprintf(buffer, sizeof(buffer), "[수집] 시작: %s, 종료: %s, 소요 시간: %ldms", startTimestamp.c_str(), getCurrentTime().c_str(), collectDuration.count());
+    cout << "\033[2J\033[H";  // 화면 전체 지우고 커서를 왼쪽 상단으로
     cout << buffer << endl;
     LOG_INFO(buffer);
 }

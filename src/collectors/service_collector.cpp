@@ -63,14 +63,11 @@ void ServiceCollector::collect()
         }
     }
 
-    // 결과 벡터 업데이트 (필요시에만)
-    if (serviceInfo.empty() || serviceInfo.size() != serviceInfoCache.size())
+    // 항상 최신 정보로 결과 벡터 업데이트
+    serviceInfo.clear();
+    for (const auto &pair : serviceInfoCache)
     {
-        serviceInfo.clear();
-        for (const auto &pair : serviceInfoCache)
-        {
-            serviceInfo.push_back(pair.second.info);
-        }
+        serviceInfo.push_back(pair.second.info);
     }
 }
 
@@ -82,6 +79,8 @@ void ServiceCollector::collect()
  */
 void ServiceCollector::collectAllServicesInfo()
 {
+    LOG_INFO("전체 서비스 정보 수집 시작");
+
     // 메모리 재할당 줄이기
     currentServices.reserve(serviceInfoCache.size() + 10);
 
@@ -115,6 +114,19 @@ void ServiceCollector::collectAllServicesInfo()
     // 여기서는 파싱 코드를 생략하고, 기존 방식으로 진행합니다
     collectServiceList(tempServices);
 
+    // 서비스 목록 확인 로그 추가
+    LOG_INFO("수집된 서비스 수: {}", tempServices.size());
+
+    // MySQL 서비스 상태 로깅
+    for (const auto &service : tempServices)
+    {
+        if (service.name == "mysql")
+        {
+            LOG_INFO("MySQL 서비스 현재 상태 - active_state: {}, status: {}",
+                     service.active_state, service.status);
+        }
+    }
+
     // 2. 변경 감지 및 캐싱 메커니즘
     {
         lock_guard<mutex> lock(cacheMutex);
@@ -126,6 +138,7 @@ void ServiceCollector::collectAllServicesInfo()
             if (it == serviceInfoCache.end())
             {
                 // 새 서비스 - 캐시에 추가
+                LOG_INFO("새 서비스 발견: {}", service.name);
                 CachedServiceInfo cachedInfo;
                 cachedInfo.info = service;
                 cachedInfo.lastUpdated = chrono::system_clock::now();
@@ -134,27 +147,26 @@ void ServiceCollector::collectAllServicesInfo()
             }
             else if (hasServiceChanged(it->second.info, service))
             {
+                // 변경된 서비스 감지 로그
+                LOG_INFO("서비스 변경 감지: {} - 이전: {} -> 현재: {}",
+                         service.name, it->second.info.active_state, service.active_state);
+
                 // 변경된 서비스 - 업데이트 필요 표시
                 it->second.info.status = service.status;
+                it->second.info.active_state = service.active_state;
                 it->second.info.enabled = service.enabled;
                 it->second.needsUpdate = true;
             }
         }
 
-        // 삭제된 서비스 제거
-        auto it = serviceInfoCache.begin();
-        while (it != serviceInfoCache.end())
+        // MySQL 서비스 캐시 상태 확인
+        auto mysqlIt = serviceInfoCache.find("mysql");
+        if (mysqlIt != serviceInfoCache.end())
         {
-            if (none_of(tempServices.begin(), tempServices.end(),
-                        [&it](const ServiceInfo &info)
-                        { return info.name == it->first; }))
-            {
-                it = serviceInfoCache.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
+            LOG_INFO("MySQL 서비스 캐시 상태 - active_state: {}, status: {}, needsUpdate: {}",
+                     mysqlIt->second.info.active_state,
+                     mysqlIt->second.info.status,
+                     mysqlIt->second.needsUpdate ? "true" : "false");
         }
     }
 
@@ -260,9 +272,19 @@ void ServiceCollector::collectAllServicesInfo()
  */
 bool ServiceCollector::hasServiceChanged(const ServiceInfo &oldInfo, const ServiceInfo &newInfo) const
 {
-    return (oldInfo.status != newInfo.status ||
-            oldInfo.enabled != newInfo.enabled ||
-            oldInfo.active_state != newInfo.active_state);
+    bool changed = (oldInfo.status != newInfo.status ||
+                    oldInfo.enabled != newInfo.enabled ||
+                    oldInfo.active_state != newInfo.active_state);
+
+    // MySQL 서비스의 변경 감지 확인
+    if (oldInfo.name == "mysql" || newInfo.name == "mysql")
+    {
+        LOG_INFO("MySQL 서비스 변경 감지 비교 - 이전: {}, 현재: {}, 변경여부: {}",
+                 oldInfo.active_state, newInfo.active_state,
+                 changed ? "true" : "false");
+    }
+
+    return changed;
 }
 
 /**
@@ -834,7 +856,6 @@ void ServiceCollector::collectAllEnabledStatesAtOnce(sd_bus *bus, map<string, bo
         r = sd_bus_message_read(reply, "ss", &unit_path, &state);
         if (r < 0)
         {
-            LOG_ERROR("유닛 파일 정보 읽기 실패: {}", strerror(-r));
             continue;
         }
 
@@ -911,23 +932,23 @@ void ServiceCollector::collectBasicServiceInfo()
  */
 void ServiceCollector::updateChangedServicesOnly()
 {
-    // systemctl list-units --state=changed로 변경된 서비스만 확인
-    FILE *pipe = popen("systemctl list-units --state=changed --type=service --no-legend --no-pager 2>/dev/null", "r");
+    // 모든 서비스의 현재 상태를 확인하는 명령어로 변경
+    FILE *pipe = popen("systemctl list-units --type=service --all --no-legend --no-pager 2>/dev/null", "r");
     if (!pipe)
     {
-        LOG_ERROR("변경된 서비스 목록 명령 실행 실패");
+        LOG_ERROR("서비스 목록 명령 실행 실패");
         return;
     }
 
-    vector<string> changedServices;
+    map<string, string> currentActiveStates;
     char buffer[512];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
     {
         string line(buffer);
         istringstream iss(line);
-        string name;
+        string name, load, active, sub, description;
 
-        if (iss >> name)
+        if (iss >> name >> load >> active >> sub)
         {
             // .service 확장자 제거
             const string suffix = ".service";
@@ -936,25 +957,40 @@ void ServiceCollector::updateChangedServicesOnly()
             {
                 name = name.substr(0, name.length() - suffix.length());
             }
-            changedServices.push_back(name);
+            currentActiveStates[name] = active; // active 상태 저장
         }
     }
     pclose(pipe);
 
-    // 캐시에 변경 플래그 설정
+    // 캐시와 현재 상태 비교하여 변경된 서비스 찾기
+    vector<string> changedServices;
     {
         lock_guard<mutex> lock(cacheMutex);
-        for (const auto &name : changedServices)
+        for (auto &pair : serviceInfoCache)
         {
-            auto it = serviceInfoCache.find(name);
-            if (it != serviceInfoCache.end())
+            auto it = currentActiveStates.find(pair.first);
+            if (it != currentActiveStates.end())
             {
-                it->second.needsUpdate = true;
+                // 디버깅을 위한 로그 추가
+                LOG_INFO("서비스 상태 비교: {} - 캐시: '{}' vs 현재: '{}'",
+                         pair.first, pair.second.info.active_state, it->second);
+
+                // 캐시된 상태와 현재 상태 비교
+                if (pair.second.info.active_state != it->second)
+                {
+                    LOG_INFO("서비스 상태 변경 감지: {} - '{}' -> '{}'",
+                             pair.first, pair.second.info.active_state, it->second);
+
+                    changedServices.push_back(pair.first);
+                    // 즉시 상태 업데이트 (더 빠른 반응을 위해)
+                    pair.second.info.active_state = it->second;
+                    pair.second.needsUpdate = true;
+                }
             }
         }
     }
 
-    // 변경된 서비스만 업데이트
+    // 변경된 서비스의 상세 정보 업데이트
     for (const auto &name : changedServices)
     {
         ServiceInfo tempInfo;
@@ -1461,6 +1497,7 @@ vector<ServiceInfo> ServiceCollector::collectServicesNativeAsync()
  */
 vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
 {
+    LOG_INFO("비동기 서비스 정보 수집 시작");
     vector<ServiceInfo> infoResult;
 
     // 모든 서비스 기본 정보를 한 번에 가져오기
@@ -1496,10 +1533,20 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
             info.status = status;
 
             infoResult.push_back(info);
+
+            // MySQL 서비스 로깅
+            if (name == "mysql")
+            {
+                LOG_INFO("MySQL 서비스 기본 정보 수집: enabled={}, status={}",
+                         info.enabled ? "true" : "false", info.status);
+            }
         }
     }
     pclose(pipe);
 
+    LOG_INFO("기본 서비스 정보 수집 완료: {} 개", infoResult.size());
+
+    // 서비스별 상세 정보 수집 - 이 부분이 active_state를 가져옴
     for (auto &service : infoResult)
     {
         // 템플릿 서비스인지 확인 (@가 포함되어 있는지)
@@ -1557,7 +1604,13 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
                         ".service -p Type,LoadState,ActiveState,SubState 2>/dev/null";
         }
 
-        // 기존 상세 정보 수집 코드는 그대로 유지
+        // MySQL 서비스 상세 정보 명령 로깅
+        if (service.name == "mysql")
+        {
+            LOG_INFO("MySQL 서비스 상세 정보 명령: {}", detailCmd);
+        }
+
+        // 상세 정보 수집
         FILE *detailPipe = popen(detailCmd.c_str(), "r");
         if (detailPipe)
         {
@@ -1584,6 +1637,12 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
                         service.active_state = value;
                     else if (key == "SubState")
                         service.sub_state = value;
+
+                    // MySQL 서비스 상세 정보 로깅
+                    if (service.name == "mysql" && (key == "ActiveState" || key == "SubState"))
+                    {
+                        LOG_INFO("MySQL 서비스 상세 정보: {}={}", key, value);
+                    }
                 }
             }
 
@@ -1593,8 +1652,16 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
                 LOG_ERROR("명령 실행 실패: {} (상태: {})", detailCmd, status);
             }
         }
+
+        // MySQL 서비스 최종 상태 로깅
+        if (service.name == "mysql")
+        {
+            LOG_INFO("MySQL 서비스 최종 상태: active_state={}, status={}",
+                     service.active_state, service.status);
+        }
     }
 
+    LOG_INFO("비동기 서비스 정보 수집 완료: {} 개", infoResult.size());
     return infoResult;
 }
 
@@ -1607,6 +1674,18 @@ vector<ServiceInfo> ServiceCollector::collectAllServicesInfoAsync()
  */
 void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServices)
 {
+    LOG_INFO("서비스 데이터 병합 시작: {} 개", updatedServices.size());
+
+    // MySQL 서비스 확인
+    for (const auto &service : updatedServices)
+    {
+        if (service.name == "mysql")
+        {
+            LOG_INFO("병합할 MySQL 서비스 정보: active_state={}, status={}",
+                     service.active_state, service.status);
+        }
+    }
+
     // 기존 캐시와 업데이트된 서비스 정보 병합
     for (const auto &service : updatedServices)
     {
@@ -1619,6 +1698,11 @@ void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServic
             cachedInfo.lastUpdated = chrono::system_clock::now();
             cachedInfo.needsUpdate = false;
             serviceInfoCache[service.name] = cachedInfo;
+
+            if (service.name == "mysql")
+            {
+                LOG_INFO("MySQL 서비스 신규 추가됨");
+            }
         }
         else if (hasServiceChanged(it->second.info, service))
         {
@@ -1626,6 +1710,12 @@ void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServic
             // 변경 시 기존 정보 중 유지해야 할 정보 (자원 사용량 등) 보존
             auto oldMemory = it->second.info.memory_usage;
             auto oldCpu = it->second.info.cpu_usage;
+
+            if (service.name == "mysql")
+            {
+                LOG_INFO("MySQL 서비스 변경 감지: 이전={}, 현재={}",
+                         it->second.info.active_state, service.active_state);
+            }
 
             it->second.info = service;
 
@@ -1644,35 +1734,13 @@ void ServiceCollector::mergeServiceData(const vector<ServiceInfo> &updatedServic
         }
     }
 
-    // 삭제된 서비스 처리
-    auto now = chrono::system_clock::now();
-    for (auto it = serviceInfoCache.begin(); it != serviceInfoCache.end();)
+    // 병합 후 MySQL 서비스 상태 확인
+    auto mysqlIt = serviceInfoCache.find("mysql");
+    if (mysqlIt != serviceInfoCache.end())
     {
-        // 업데이트된 서비스 목록에 없는 서비스 확인
-        if (none_of(updatedServices.begin(), updatedServices.end(),
-                    [&it](const ServiceInfo &service)
-                    {
-                        return service.name == it->first;
-                    }))
-        {
-
-            // 30초 이상 업데이트되지 않은 서비스는 삭제
-            auto elapsed = chrono::duration_cast<chrono::seconds>(
-                               now - it->second.lastUpdated)
-                               .count();
-
-            if (elapsed > 30)
-            {
-                it = serviceInfoCache.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        else
-        {
-            ++it;
-        }
+        LOG_INFO("병합 후 MySQL 서비스 상태: active_state={}, status={}",
+                 mysqlIt->second.info.active_state, mysqlIt->second.info.status);
     }
+
+    LOG_INFO("서비스 데이터 병합 완료");
 }
